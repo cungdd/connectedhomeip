@@ -953,9 +953,8 @@ Protocols::InteractionModel::Status emberAfExternalAttributeWriteCallback(Endpoi
 
 void ApplicationInit()
 {
-
     sEthernetNetworkCommissioningInstance.Init();
-    // InitOTARequestor();
+    InitOTARequestor();
 }
 
 const EmberAfDeviceType gBridgedTempLightDeviceTypes[] = {  { DEVICE_TYPE_COLOR_TEMPERATURE_LIGHT, DEVICE_VERSION_DEFAULT },
@@ -1396,24 +1395,6 @@ int main(int argc, char * argv[])
     initParams.interfaceId = LinuxDeviceOptions::GetInstance().interfaceId;
     chip::Server::GetInstance().Init(initParams);
     RunOTARequestor();
-    /********************************************************OTA******************************************************/
-
-    // if (gRequestorCore.GetCurrentUpdateState() == OTAUpdateStateEnum::kApplying)
-    // {
-    //     if (kMaxFilePathSize <= strlen(kImageExecPath))
-    //     {
-    //         ChipLogError(SoftwareUpdate, "Buffer too small for the new image file path: %s", kImageExecPath);
-    //         return -1;
-    //     }
-
-    //     argv[0] = kImageExecPath;
-    //     execv(argv[0], argv);
-
-    //     // If successfully executing the new image, execv should not return
-    //     ChipLogError(SoftwareUpdate, "The OTA image is invalid");
-    // }
-
-    /********************************************************OTA******************************************************/
 
     // gExampleDeviceInfoProvider.SetStorageDelegate(&Server::GetInstance().GetPersistentStorage());
     // chip::DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);
@@ -1428,7 +1409,6 @@ int main(int argc, char * argv[])
         ChipLogProgress(DeviceLayer, "LightSwitchMgr Init failed!");
     }
 
-    // emberAfEndpointEnableDisable(emberAfEndpointFromIndex(static_cast<uint16_t>(emberAfFixedEndpointCount() - 2)), false);
     emberAfEndpointEnableDisable(emberAfEndpointFromIndex(static_cast<uint16_t>(emberAfFixedEndpointCount() - 1)), false);
 
 #if HC_RANGDONG

@@ -293,6 +293,16 @@ bool HandleOptions(const char * aProgram, OptionSet * aOptions, int aIdentifier,
     return (retval);
 }
 
+// void ApplicationShutdown() {}
+
+// void ApplicationInit(void)
+// {
+//     // Initialize all OTA download components
+//     InitOTARequestor();
+// }
+
+
+
 int RunOTARequestor(void)
 {
     // VerifyOrDie(ChipLinuxAppInit(argc, argv, &cmdLineOptions, MakeOptional(kNetworkCommissioningEndpointSecondary)) == 0);
