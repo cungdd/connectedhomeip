@@ -1,7 +1,6 @@
 /*
  *
- *    Copyright (c) 2022 Project CHIP Authors
- *    All rights reserved.
+ *    Copyright (c) 2020 Project CHIP Authors
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -15,10 +14,24 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-
 #pragma once
 
+#include "app-common/zap-generated/ids/Clusters.h"
+#include "app-common/zap-generated/ids/Commands.h"
+#include "lib/core/CHIPError.h"
 
-// std::vector<EndpointListInfo> GetEndpointListInfo(chip::EndpointId parentId);
+CHIP_ERROR InitBindingHandler();
+void SwitchWorkerFunction(intptr_t context);
+void BindingWorkerFunction(intptr_t context);
 
-// std::vector<Action *> GetActionListInfo(chip::EndpointId parentId);
+struct BindingCommandData
+{
+    chip::EndpointId localEndpointId = 1;
+    chip::CommandId commandId;
+    chip::ClusterId clusterId;
+    bool isGroup = false;
+    uint8_t value = 0;
+    uint16_t transitionTime = 0;
+    uint8_t optionsMask = 1;
+    uint8_t optionsOverride = 1;
+};

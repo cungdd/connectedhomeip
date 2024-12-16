@@ -1,0 +1,1511 @@
+/*
+ *
+ *    Copyright (c) 2021 Project CHIP Authors
+ *    All rights reserved.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
+#include <AppMain.h>
+#include <platform/CHIPDeviceLayer.h>
+#include <platform/PlatformManager.h>
+#include <app-common/zap-generated/ids/Attributes.h>
+#include <app-common/zap-generated/ids/Events.h>
+#include <app-common/zap-generated/ids/Clusters.h>
+#include <app/ConcreteAttributePath.h>
+#include <app/EventLogging.h>
+#include <app/clusters/network-commissioning/network-commissioning.h>
+#include <app/reporting/reporting.h>
+#include <app/util/af-types.h>
+#include <app/util/attribute-storage.h>
+#include <app/util/util.h>
+#include <credentials/DeviceAttestationCredsProvider.h>
+#include <credentials/examples/DeviceAttestationCredsExample.h>
+#include <lib/core/CHIPError.h>
+#include <lib/support/CHIPMem.h>
+#include <lib/support/ZclString.h>
+#include <platform/CommissionableDataProvider.h>
+#include <setup_payload/QRCodeSetupPayloadGenerator.h>
+#include <setup_payload/SetupPayload.h>
+#include <stdint.h>
+// #include <platform/Darwin/NetworkCommissioningDriver.h>
+
+// #if CHIP_DEVICE_LAYER_TARGET_DARWIN
+// #include <platform/Darwin/NetworkCommissioningDriver.h>
+// #if CHIP_DEVICE_CONFIG_ENABLE_WIFI
+// #include <platform/Darwin/WiFi/NetworkCommissioningWiFiDriver.h>
+// #endif // CHIP_DEVICE_CONFIG_ENABLE_WIFI
+// #endif // CHIP_DEVICE_LAYER_TARGET_DARWIN
+
+// #if CHIP_DEVICE_LAYER_TARGET_LINUX
+// #include <platform/Linux/NetworkCommissioningDriver.h>
+// #endif // CHIP_DEVICE_LAYER_TARGET_LINUX
+
+#include <pthread.h>
+#include <sys/ioctl.h>
+#include "CommissionableInit.h"
+#include "main.h"
+#include <app/server/Server.h>
+
+/*----------------------------------------------------------------
+------------------------------- Dev-----------------------------
+----------------------------------------------------------------*/
+#define HC_RANGDONG 1
+
+#include <app/clusters/switch-server/switch-server.h>
+#include <app-common/zap-generated/attributes/Accessors.h>
+#include <app-common/zap-generated/cluster-objects.h>
+#include <cassert>
+#include <iostream>
+#include <vector>
+#include "LightSwitchMgr.h"
+#include <app/AttributeAccessInterface.h>
+#include <app/util/binding-table.h>
+#include <cstring>
+#include "DeviceRD.h"
+#include "Mqtt.h"
+#include "OTA.h"
+
+using namespace chip;
+using namespace chip::app;
+using namespace chip::Credentials;
+using namespace chip::Inet;
+using namespace chip::Transport;
+using namespace chip::DeviceLayer;
+using namespace chip::app::Clusters;
+
+#if HC_RANGDONG
+    static struct mosquitto *mosq;
+    DeviceRD deviceRD;
+#endif
+
+namespace {
+
+const int kDescriptorAttributeArraySize = 254;
+// static chip::DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
+constexpr chip::EndpointId kLightSwitchEndpoint   = 2;
+constexpr chip::EndpointId kGenericSwitchEndpoint = 2;
+DeviceLayer::NetworkCommissioning::LinuxEthernetDriver sEthernetDriver;
+Clusters::NetworkCommissioning::Instance sEthernetNetworkCommissioningInstance(0, &sEthernetDriver);
+
+// ENDPOINT DEFINITIONS:
+// =================================================================================
+//
+// Endpoint definitions will be reused across multiple endpoints for every instance of the
+// endpoint type.
+// There will be no intrinsic storage for the endpoint attributes declared here.
+// Instead, all attributes will be treated as EXTERNAL, and therefore all reads
+// or writes to the attributes must be handled within the emberAfExternalAttributeWriteCallback
+// and emberAfExternalAttributeReadCallback functions declared herein. This fits
+// the typical model of a bridge, since a bridge typically maintains its own
+// state database representing the devices connected to it.
+
+// Device types for dynamic endpoints: TODO Need a generated file from ZAP to define these!
+
+#define DEVICE_TYPE_BRIDGED_NODE                    0x0013
+
+#define DEVICE_TYPE_LO_ON_OFF_LIGHT                 0x0100
+
+#define DEVICE_TYPE_DIM_LIGHT                       0x0101
+
+#define DEVICE_TYPE_COLOR_TEMPERATURE_LIGHT         0x010C
+
+#define DEVICE_TYPE_LO_SWITCH_LIGHT                 0x0103
+
+#define DEVICE_TYPE_DIMMER_SWITCH                   0x0104
+
+#define DEVICE_TYPE_COLOR_DIMMER_SWITCH             0x0105
+
+#define DEVICE_TYPE_EXTENAL_LIGHT                   0x010D
+
+#define DEVICE_TYPE_TEMPERATURE_SENSOR              0x0302
+
+#define DEVICE_TYPE_HUMIDITY_SENSOR                 0x0307
+
+#define DEVICE_TYPE_CONTACT_SENSOR                  0x0015
+
+#define DEVICE_TYPE_POWER_SOURCE                    0x0011
+
+// #define DEVICE_TYPE_POWER_SOURCE 0x0011
+
+// #define DEVICE_TYPE_TEMP_SENSOR 0x0302
+
+// Device Version for dynamic endpoints:
+
+#define DEVICE_VERSION_DEFAULT 1
+
+// Declare On/Off cluster attributes
+DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(onOffAttrs)
+DECLARE_DYNAMIC_ATTRIBUTE(OnOff::Attributes::OnOff::Id, BOOLEAN, 1, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(OnOff::Attributes::GlobalSceneControl::Id, BOOLEAN, 1, 0),
+DECLARE_DYNAMIC_ATTRIBUTE(OnOff::Attributes::FeatureMap::Id, BITMAP32, 1, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
+DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(switchAttrs)
+DECLARE_DYNAMIC_ATTRIBUTE(Switch::Attributes::CurrentPosition::Id, INT8U, 1, 0),
+DECLARE_DYNAMIC_ATTRIBUTE(Switch::Attributes::NumberOfPositions::Id, INT8U, 1, 0),
+DECLARE_DYNAMIC_ATTRIBUTE(Switch::Attributes::FeatureMap::Id, BITMAP32, 1, 0),
+DECLARE_DYNAMIC_ATTRIBUTE(Switch::Attributes::EventList::Id, ARRAY, 4, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
+// Dev Declare LevelControl cluster attributes
+DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(levelControlAttrs)
+DECLARE_DYNAMIC_ATTRIBUTE(LevelControl::Attributes::CurrentLevel::Id, INT8U, 1, 0), 
+DECLARE_DYNAMIC_ATTRIBUTE(LevelControl::Attributes::MinLevel::Id, INT8U, 1, 0), 
+DECLARE_DYNAMIC_ATTRIBUTE(LevelControl::Attributes::MaxLevel::Id, INT8U, 1, 0), 
+DECLARE_DYNAMIC_ATTRIBUTE(LevelControl::Attributes::FeatureMap::Id, BITMAP32, 1, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
+DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(tempColorControlAttrs)
+DECLARE_DYNAMIC_ATTRIBUTE(ColorControl::Attributes::ColorTemperatureMireds::Id, INT8U, 1, 0),
+DECLARE_DYNAMIC_ATTRIBUTE(ColorControl::Attributes::ColorTempPhysicalMinMireds::Id, INT8U, 1, 0),
+DECLARE_DYNAMIC_ATTRIBUTE(ColorControl::Attributes::ColorTempPhysicalMaxMireds::Id, INT8U, 1, 0),
+DECLARE_DYNAMIC_ATTRIBUTE(ColorControl::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
+DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(extendedColorControlAttrs)
+DECLARE_DYNAMIC_ATTRIBUTE(ColorControl::Attributes::CurrentHue::Id, INT8U, 1, 0),
+DECLARE_DYNAMIC_ATTRIBUTE(ColorControl::Attributes::CurrentSaturation::Id, INT8U, 1, 0),
+DECLARE_DYNAMIC_ATTRIBUTE(ColorControl::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
+
+// DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(powerSourceAttrs)
+// DECLARE_DYNAMIC_ATTRIBUTE(PowerSource::Attributes::BatChargeLevel::Id, ENUM8, 1, 0),
+//     DECLARE_DYNAMIC_ATTRIBUTE(PowerSource::Attributes::BatReplacementNeeded::Id, BOOLEAN, 1, 0),
+//     DECLARE_DYNAMIC_ATTRIBUTE(PowerSource::Attributes::BatReplaceability::Id, ENUM8, 1, 0),
+//     DECLARE_DYNAMIC_ATTRIBUTE(PowerSource::Attributes::Order::Id, INT8U, 1, 0),
+//     DECLARE_DYNAMIC_ATTRIBUTE(PowerSource::Attributes::Status::Id, ENUM8, 1, 0),
+//     DECLARE_DYNAMIC_ATTRIBUTE(PowerSource::Attributes::Description::Id, CHAR_STRING, 32, 0),
+//     DECLARE_DYNAMIC_ATTRIBUTE(PowerSource::Attributes::FeatureMap::Id, BITMAP32, 4, 0), 
+//     DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
+// DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(groupsAttrs)
+// DECLARE_DYNAMIC_ATTRIBUTE(Groups::Attributes::NameSupport::Id, BITMAP8, 2, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(Groups::Attributes::GeneratedCommandList::Id, ARRAY, 2, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(Groups::Attributes::AcceptedCommandList::Id, ARRAY, 2, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(Groups::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+//     DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
+// DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(scenesAttrs)
+// DECLARE_DYNAMIC_ATTRIBUTE(Scenes::Attributes::SceneCount::Id, INT8U, 1, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(Scenes::Attributes::CurrentScene::Id, INT8U, 1, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(Scenes::Attributes::CurrentGroup::Id, GROUP_ID, 1, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(Scenes::Attributes::SceneValid::Id, BOOLEAN, 1, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(Scenes::Attributes::NameSupport::Id, BITMAP8, 1, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(Scenes::Attributes::LastConfiguredBy::Id, NODE_ID, 1, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(Scenes::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+//     DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
+DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(identifyAttrs)
+DECLARE_DYNAMIC_ATTRIBUTE(Identify::Attributes::IdentifyTime::Id, INT16U, 2, 0),
+DECLARE_DYNAMIC_ATTRIBUTE(Identify::Attributes::IdentifyType::Id, ENUM8, 1, 0),
+DECLARE_DYNAMIC_ATTRIBUTE(Identify::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
+// Dev Declare Binding cluster attributes
+DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(bindingAttrs)
+DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::Binding::Id, ARRAY, 256, 1),
+DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
+
+// Dev Declare Temperature cluster attributes
+// DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(temperatureAttrs)
+// DECLARE_DYNAMIC_ATTRIBUTE(TemperatureMeasurement::Attributes::MeasuredValue::Id, INT16S, 2, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(TemperatureMeasurement::Attributes::MinMeasuredValue::Id, INT16S, 2, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(TemperatureMeasurement::Attributes::MaxMeasuredValue::Id, INT16S, 2, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(TemperatureMeasurement::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(TemperatureMeasurement::Attributes::EventList::Id, ARRAY, 4, 0),
+//     DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
+
+// Dev Declare Humidity cluster attributes
+// DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(humidityAttrs)
+// DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::MeasuredValue::Id, INT8U, 1, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::MinMeasuredValue::Id, INT8U, 1, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::MaxMeasuredValue::Id, INT8U, 1, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::EventList::Id, ARRAY, 4, 0),
+//     DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
+
+// Dev Declare Door Look cluster attributes
+// DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(doorlockAttrs)
+// DECLARE_DYNAMIC_ATTRIBUTE(DoorLock::Attributes::DoorState::Id, BOOLEAN, 1, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+// DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::EventList::Id, ARRAY, 4, 0),
+//     DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
+// Declare Descriptor cluster attributes
+DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(descriptorAttrs)
+DECLARE_DYNAMIC_ATTRIBUTE(Descriptor::Attributes::DeviceTypeList::Id, ARRAY, kDescriptorAttributeArraySize, 0), /* device list */
+    DECLARE_DYNAMIC_ATTRIBUTE(Descriptor::Attributes::ServerList::Id, ARRAY, kDescriptorAttributeArraySize, 0), /* server list */
+    DECLARE_DYNAMIC_ATTRIBUTE(Descriptor::Attributes::ClientList::Id, ARRAY, kDescriptorAttributeArraySize, 0), /* client list */
+    DECLARE_DYNAMIC_ATTRIBUTE(Descriptor::Attributes::PartsList::Id, ARRAY, kDescriptorAttributeArraySize, 0),  /* parts list */
+    DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
+// Declare Bridged Device Basic Information cluster attributes
+DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(bridgedDeviceBasicAttrs)
+DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::NodeLabel::Id, CHAR_STRING, 10, 0), /* NodeLabel */
+    DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::VendorName::Id, CHAR_STRING, 10, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::VendorID::Id, VENDOR_ID, 10, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::ProductName::Id, CHAR_STRING, 10, 0),
+    // DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::HardwareVersion::Id, INT8U, 10, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::HardwareVersionString::Id, CHAR_STRING, 10, 0),
+    // DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::SoftwareVersion::Id, INT8U, 10, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::SoftwareVersionString::Id, CHAR_STRING, 10, 0),
+    // DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::PartNumber::Id, CHAR_STRING, 10, 0),
+    // DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::ProductURL::Id, CHAR_STRING, 10, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::SerialNumber::Id, CHAR_STRING, 10, 0),
+    // DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::UniqueID::Id, CHAR_STRING, 10, 0),
+    // DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::ManufacturingDate::Id, CHAR_STRING, 10, 0),
+    // DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::ProductLabel::Id, CHAR_STRING, 10, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::Reachable::Id, BOOLEAN, 1, 0),              /* Reachable */
+    DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::FeatureMap::Id, BITMAP32, 4, 0), /* feature map */
+    DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
+
+constexpr EventId eventsBrigde[] = {
+    app::Clusters::BridgedDeviceBasicInformation::Events::ReachableChanged::Id,
+    kInvalidEventId,
+};
+
+constexpr EventId eventsSwitch[] = {
+    app::Clusters::Switch::Events::SwitchLatched::Id,
+    kInvalidEventId,
+};
+
+constexpr EventId onOffCommands[] = {
+    app::Clusters::OnOff::Commands::Off::Id,
+    app::Clusters::OnOff::Commands::On::Id,
+    app::Clusters::OnOff::Commands::Toggle::Id,
+    kInvalidCommandId,
+};
+
+constexpr CommandId levelControlCommands[] = {
+    app::Clusters::LevelControl::Commands::MoveToLevel::Id,
+    kInvalidCommandId,
+};
+
+constexpr CommandId tempColorControlCommands[] = {
+    app::Clusters::ColorControl::Commands::MoveToColorTemperature ::Id,
+    kInvalidCommandId,
+};
+
+constexpr CommandId extendedColorControlCommands[] = {
+    app::Clusters::ColorControl::Commands::MoveToHue::Id,
+    app::Clusters::ColorControl::Commands::MoveToSaturation::Id,
+    kInvalidCommandId,
+};
+
+// constexpr CommandId groupCommands[] = {
+//     app::Clusters::Groups::Commands::AddGroupResponse::Id,
+//     app::Clusters::Groups::Commands::ViewGroupResponse::Id,
+//     app::Clusters::Groups::Commands::GetGroupMembershipResponse::Id,
+//     app::Clusters::Groups::Commands::RemoveGroupResponse::Id,
+//     kInvalidCommandId,
+// };
+
+// constexpr CommandId scenesCommands[] = {
+//     app::Clusters::Scenes::Commands::AddScene::Id,
+//     app::Clusters::Scenes::Commands::ViewScene::Id,
+//     app::Clusters::Scenes::Commands::RemoveScene::Id,
+//     app::Clusters::Scenes::Commands::RemoveAllScenes::Id,
+//     app::Clusters::Scenes::Commands::StoreScene::Id,
+//     app::Clusters::Scenes::Commands::RecallScene::Id,
+//     app::Clusters::Scenes::Commands::GetSceneMembership::Id,
+//     app::Clusters::Scenes::Commands::EnhancedAddScene::Id,
+//     app::Clusters::Scenes::Commands::EnhancedViewScene::Id,
+//     app::Clusters::Scenes::Commands::CopyScene::Id,
+//     kInvalidCommandId,
+// };
+
+/*----------------------------------------------------------------
+-----------------------------PTIT Dev-----------------------------
+----------------------------------------------------------------*/
+
+DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedTempLightClusters)
+DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+// DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, nullptr, nullptr, nullptr, 0),
+// DECLARE_DYNAMIC_CLUSTER(Scenes::Id, scenesAttrs, nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(OnOff::Id, onOffAttrs, ZAP_CLUSTER_MASK(SERVER), onOffCommands, nullptr),
+DECLARE_DYNAMIC_CLUSTER(LevelControl::Id, levelControlAttrs, ZAP_CLUSTER_MASK(SERVER), levelControlCommands, nullptr),
+DECLARE_DYNAMIC_CLUSTER(ColorControl::Id, tempColorControlAttrs, ZAP_CLUSTER_MASK(SERVER), tempColorControlCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER_LIST_END;
+
+DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedExtendedLightClusters)
+DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+// DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, nullptr, nullptr, nullptr, 0),
+// DECLARE_DYNAMIC_CLUSTER(Scenes::Id, scenesAttrs, nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(OnOff::Id, onOffAttrs, ZAP_CLUSTER_MASK(SERVER), onOffCommands, nullptr),
+DECLARE_DYNAMIC_CLUSTER(LevelControl::Id, levelControlAttrs, ZAP_CLUSTER_MASK(SERVER), levelControlCommands, nullptr),
+DECLARE_DYNAMIC_CLUSTER(ColorControl::Id, extendedColorControlAttrs, ZAP_CLUSTER_MASK(SERVER), extendedColorControlCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER_LIST_END;
+
+DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedOnOffSwitchClusters)
+DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+// DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, nullptr, nullptr, nullptr, 0),
+DECLARE_DYNAMIC_CLUSTER(Switch::Id, switchAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+// DECLARE_DYNAMIC_CLUSTER_CLIENT(Scenes::Id, scenesAttrs, nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(OnOff::Id, onOffAttrs,ZAP_CLUSTER_MASK(CLIENT), nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(Binding::Id, bindingAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER_LIST_END;
+
+
+DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedColorDimmerSwitchClusters)
+DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+// DECLARE_DYNAMIC_CLUSTER_CLIENT(Groups::Id, groupsAttrs, nullptr, nullptr),
+// DECLARE_DYNAMIC_CLUSTER_CLIENT(Scenes::Id, scenesAttrs, nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(OnOff::Id, onOffAttrs, ZAP_CLUSTER_MASK(CLIENT), nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(LevelControl::Id, levelControlAttrs, ZAP_CLUSTER_MASK(CLIENT), nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(ColorControl::Id, tempColorControlAttrs, ZAP_CLUSTER_MASK(CLIENT), nullptr, nullptr),
+DECLARE_DYNAMIC_CLUSTER(Binding::Id, bindingAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER_LIST_END;
+
+
+// DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedTemperatureClusters)
+// DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, nullptr, nullptr, nullptr, 0),
+// DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, nullptr, nullptr, nullptr, 0),
+// DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, nullptr, nullptr, eventsBrigde, ArraySize(eventsBrigde)),
+// // DECLARE_DYNAMIC_CLUSTER_CLIENT(Groups::Id, groupsAttrs, nullptr, nullptr),
+// // DECLARE_DYNAMIC_CLUSTER_CLIENT(Scenes::Id, scenesAttrs, nullptr, nullptr),
+// DECLARE_DYNAMIC_CLUSTER(TemperatureMeasurement::Id, temperatureAttrs, nullptr, nullptr),
+//     DECLARE_DYNAMIC_CLUSTER_LIST_END;
+
+
+// DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedHumidityClusters)
+// DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, nullptr, nullptr, nullptr, 0),
+// DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, nullptr, nullptr, nullptr, 0),
+// DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, nullptr, nullptr, eventsBrigde, ArraySize(eventsBrigde)),
+// // DECLARE_DYNAMIC_CLUSTER_CLIENT(Groups::Id, groupsAttrs, nullptr, nullptr),
+// // DECLARE_DYNAMIC_CLUSTER_CLIENT(Scenes::Id, scenesAttrs, nullptr, nullptr),
+// DECLARE_DYNAMIC_CLUSTER(RelativeHumidityMeasurement::Id, humidityAttrs, nullptr, nullptr),
+//     DECLARE_DYNAMIC_CLUSTER_LIST_END;
+
+/**
+ * @brief Create Switchs Endpoint
+ * 
+ */
+DECLARE_DYNAMIC_ENDPOINT(bridgedOnOffSwitchEndpoint, bridgedOnOffSwitchClusters);
+DataVersion gOnOffSwitchDataVersions[ArraySize(bridgedOnOffSwitchClusters)];
+
+
+DECLARE_DYNAMIC_ENDPOINT(bridgedColorDimmerSwitchEndpoint, bridgedColorDimmerSwitchClusters);
+DataVersion gColorDimmerSwitchDataVersions[ArraySize(bridgedColorDimmerSwitchClusters)];
+
+/**
+ * @brief Create Lights Endpoint
+ * 
+ */
+DECLARE_DYNAMIC_ENDPOINT(bridgedTempLightEndpoint, bridgedTempLightClusters);
+DataVersion gTempLightDataVersions[ArraySize(bridgedTempLightClusters)];
+
+DECLARE_DYNAMIC_ENDPOINT(bridgedExtendedLightEndpoint, bridgedExtendedLightClusters);
+DataVersion gExtendedLightDataVersions[ArraySize(bridgedExtendedLightClusters)];
+
+} // namespace
+
+// REVISION DEFINITIONS:
+// =================================================================================
+
+#define ZCL_DESCRIPTOR_CLUSTER_REVISION (1u)
+#define ZCL_IDENTIFY_CLUSTER_REVISION (4u)
+#define ZCL_BRIDGED_DEVICE_BASIC_INFORMATION_CLUSTER_REVISION (1u)
+#define ZCL_BRIDGED_DEVICE_BASIC_INFORMATION_FEATURE_MAP (0u)
+#define ZCL_FIXED_LABEL_CLUSTER_REVISION (1u)
+
+#define ZCL_ON_OFF_CLUSTER_REVISION (4u)
+#define ZCL_ON_OFF_CLUSTER_FEATURE_MAP (0u)
+
+#define ZCL_DIM_CLUSTER_REVISION (5u)
+#define ZCL_SWITCH_CLUSTER_REVISION (1u)
+#define ZCL_BINDING_CLUSTER_REVISION (1u)
+#define ZCL_COLOR_CLUSTER_REVISION (5u)
+#define ZCL_GROUPS_CLUSTER_REVISION (4u)
+#define ZCL_SCENES_CLUSTER_REVISION (4u)
+// ---------------------------------------------------------------------------
+
+
+/*----------------------------------------------------------------
+-----------------------------Rand Dong Dev-----------------------------
+----------------------------------------------------------------*/
+
+/*
+    Add Endpoints to the Bridge
+*/
+int AddDeviceEndpoint(EmberAfEndpointType * ep, const Span<const EmberAfDeviceType> & deviceTypeList,
+                      const Span<DataVersion> & dataVersionStorage, chip::EndpointId parentEndpointId = chip::kInvalidEndpointId, 
+                      bool autoFind = true, unsigned int FixEndpoint = 0)
+{
+
+    EndpointId endpoint = 0;
+    CHIP_ERROR ret;
+
+    if(autoFind == true){
+        for(endpoint = 0; endpoint < CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT; endpoint++){
+            if(emberAfEndpointIndexIsEnabled(endpoint) == false && endpoint >= FIXED_ENDPOINT_COUNT){
+                break;
+            }
+        }
+    }
+    else{
+
+        endpoint = (EndpointId) FixEndpoint;
+    }
+
+    if(endpoint == CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT){
+        ChipLogProgress(DeviceLayer, "Failed to add dynamic endpoint %d == %d", endpoint, CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT);
+        return 0;
+    }
+
+    DeviceLayer::StackLock lock;
+
+    ret = emberAfSetDynamicEndpoint((uint16_t)(endpoint - FIXED_ENDPOINT_COUNT), endpoint, ep, dataVersionStorage, deviceTypeList, parentEndpointId);
+
+    if (ret == CHIP_NO_ERROR)
+    {
+        ChipLogProgress(DeviceLayer, "Added dynamic endpoint %d --- index = %d", endpoint, (uint16_t)(endpoint - FIXED_ENDPOINT_COUNT));
+        return (int)endpoint;
+    }
+    ChipLogProgress(DeviceLayer, "Failed to add dynamic endpoint %d", ret.AsInteger());
+    return -1;
+}
+
+/*
+    Remove Endpoint from Bridge
+*/
+int RemoveDeviceEndpoint(EndpointId endpoint)
+{
+    if(emberAfEndpointIndexIsEnabled(endpoint) == false){
+        ChipLogProgress(DeviceLayer, "Removed dynamic endpoint %d failed --- Endpoint is not enable ", endpoint);
+    }
+    DeviceLayer::StackLock lock;
+    ChipLogProgress(DeviceLayer, "Removed dynamic endpoint %d", endpoint);
+    emberAfClearDynamicEndpoint((uint16_t)(endpoint - FIXED_ENDPOINT_COUNT));
+    return -1;
+}
+
+Protocols::InteractionModel::Status HandleReadBridgedDeviceBasicAttribute(chip::AttributeId attributeId, uint8_t * buffer,  uint16_t maxReadLength, EndpointId endpoint){
+    using namespace BridgedDeviceBasicInformation::Attributes;
+
+    ChipLogProgress(DeviceLayer, "HandleReadBridgedDeviceBasicAttribute: attrId=%d, maxReadLength=%d", attributeId, maxReadLength);
+    
+    DeviceInformation * device = deviceRD.GetDeviceWithEndpoint(endpoint);
+
+    if ((attributeId == Reachable::Id))
+    {
+        *buffer = (uint8_t) device->reachable;
+    }
+    else if ((attributeId == NodeLabel::Id))
+    {        
+        MutableByteSpan zclNameSpan(buffer, 50);
+        MakeZclCharString(zclNameSpan, device->NodeLabel.c_str());      
+    }
+    else if ((attributeId == VendorName::Id)) {
+        memcpy(buffer + 1, device->VendorName.c_str(), sizeof(device->VendorName));
+        *buffer = sizeof(device->VendorName);
+    }
+    else if ((attributeId == VendorID::Id)) {
+        memcpy(buffer  +1, &(device->VendorID), sizeof(device->VendorID));
+        *buffer = sizeof(device->VendorID);
+    }
+    else if ((attributeId == ProductName::Id)) {
+        memcpy(buffer + 1, device->ProductName.c_str(), sizeof(device->ProductName));
+        *buffer = sizeof(device->ProductName);
+    }
+    else if ((attributeId == SerialNumber::Id)) {
+        memcpy(buffer + 1, device->SerialNumber.c_str(), sizeof(device->SerialNumber));
+        *buffer = sizeof(device->SerialNumber);    
+    }
+    else if((attributeId == SoftwareVersionString::Id)){
+        memcpy(buffer + 1, device->Version.c_str(), sizeof(device->Version));
+        *buffer = sizeof(device->Version); 
+    }
+    else if((attributeId == HardwareVersionString::Id)){
+        memcpy(buffer + 1, device->Version.c_str(), sizeof(device->Version));
+        *buffer = sizeof(device->Version); 
+    }
+    else if ((attributeId == ClusterRevision::Id))
+    {
+        *buffer = (uint16_t) ZCL_BRIDGED_DEVICE_BASIC_INFORMATION_CLUSTER_REVISION;
+    }
+    else if ((attributeId == FeatureMap::Id))
+    {
+        *buffer = (uint32_t) ZCL_BRIDGED_DEVICE_BASIC_INFORMATION_FEATURE_MAP;
+    }
+    else if (attributeId == BridgedDeviceBasicInformation::Attributes::GeneratedCommandList::Id){
+
+    }
+    else if (attributeId == BridgedDeviceBasicInformation::Attributes::AcceptedCommandList::Id){
+
+    }
+    else if (attributeId == BridgedDeviceBasicInformation::Attributes::AttributeList::Id){
+
+    }
+    else if (attributeId == BridgedDeviceBasicInformation::Attributes::EventList::Id){
+
+    }
+    else
+    {
+        return Protocols::InteractionModel::Status::Failure;
+    }
+
+    return Protocols::InteractionModel::Status::Success;
+}
+
+Protocols::InteractionModel::Status HandleReadSwitchAttribute(chip::AttributeId attributeId, uint8_t * buffer, uint16_t maxReadLength, EndpointId endpoint){
+    // ChipLogProgress(DeviceLayer, "HandleReadOnOffAttribute: attrId=%d, maxReadLength=%d", attributeId, maxReadLength);
+    
+    if (attributeId == Switch::Attributes::CurrentPosition::Id && maxReadLength == 1){
+        *buffer = deviceRD.GetOnOffSwitch(endpoint);
+    }
+    else if(attributeId == Switch::Attributes::NumberOfPositions::Id && maxReadLength == 1){
+        *buffer = 2;
+    }
+    else if (attributeId == OnOff::Attributes::ClusterRevision::Id)
+    {
+        *buffer = (uint16_t) ZCL_SWITCH_CLUSTER_REVISION;
+    }
+    else {
+        return Protocols::InteractionModel::Status::Failure;
+    }
+
+    return Protocols::InteractionModel::Status::Success;
+}
+
+Protocols::InteractionModel::Status HandleReadOnOffAttribute(chip::AttributeId attributeId, uint8_t * buffer, uint16_t maxReadLength, EndpointId endpoint)
+{
+    // ChipLogProgress(DeviceLayer, "HandleReadOnOffAttribute: attrId=%d, maxReadLength=%d", attributeId, maxReadLength);
+
+    if ( attributeId == OnOff::Attributes::OnOff::Id && maxReadLength == 1)
+    {
+        *buffer = (uint8_t)deviceRD.GetOnOffLight(endpoint);
+    }
+    else if (attributeId == OnOff::Attributes::ClusterRevision::Id)
+    {
+        *buffer = (uint16_t) ZCL_ON_OFF_CLUSTER_REVISION;
+    }
+    else if (attributeId == OnOff::Attributes::FeatureMap::Id){
+        *buffer = ZCL_ON_OFF_CLUSTER_FEATURE_MAP;
+    }
+    else if (attributeId == OnOff::Attributes::GeneratedCommandList::Id){
+
+    }
+    else if (attributeId == OnOff::Attributes::AcceptedCommandList::Id){
+
+    }
+    else if (attributeId == OnOff::Attributes::AttributeList::Id){
+        
+    }
+    else if (attributeId == OnOff::Attributes::EventList::Id){
+        
+    }
+    else
+    {
+        return Protocols::InteractionModel::Status::Failure;
+    }
+
+    return Protocols::InteractionModel::Status::Success;
+}
+
+Protocols::InteractionModel::Status HandleWriteOnOffAttribute(chip::AttributeId attributeId, uint8_t * buffer, EndpointId endpoint)
+{
+    // ChipLogProgress(DeviceLayer, "HandleWriteOnOffAttribute: attrId=%d --- buffer=%d", attributeId, * buffer);
+
+    if (attributeId == OnOff::Attributes::OnOff::Id)
+    {
+#if HC_RANGDONG
+        MqttControllOnOff(
+            deviceRD.GetDeviceWithEndpoint(endpoint)->DeviceID,
+            (bool) (*buffer)
+        );
+        deviceRD.UpdateOnOffLight(deviceRD.GetDeviceWithEndpoint(endpoint)->DeviceID, (bool) (*buffer));
+#endif
+    }
+    else
+    {
+        return Protocols::InteractionModel::Status::Failure;
+    }
+
+    return Protocols::InteractionModel::Status::Success;
+}
+
+Protocols::InteractionModel::Status HandleReadColorControlAttribute(chip::AttributeId attributeId, uint8_t * buffer, uint16_t maxReadLength, EndpointId endpoint)
+{
+    // ChipLogProgress(DeviceLayer, "HandleReadColorControlAttribute: attrId=%d, maxReadLength=%d", attributeId, maxReadLength);
+
+    if(attributeId == ColorControl::Attributes::ColorTemperatureMireds::Id && maxReadLength == 1){
+        *buffer = (uint8_t)deviceRD.GetCctLight(endpoint);
+    }
+    else if(attributeId == ColorControl::Attributes::ColorTempPhysicalMinMireds::Id){
+        *buffer = 0;
+    }
+    else if(attributeId == ColorControl::Attributes::ColorTempPhysicalMaxMireds::Id){
+        *buffer = 255;
+    }
+    else if(attributeId == ColorControl::Attributes::CurrentHue::Id){
+        *buffer = (uint8_t)deviceRD.GetHueLight(endpoint);
+    }
+    else if(attributeId == ColorControl::Attributes::CurrentSaturation::Id ){
+        *buffer = (uint8_t)deviceRD.GetSaturationLight(endpoint);
+    }
+    else if(attributeId == ColorControl::Attributes::ClusterRevision::Id){
+        *buffer = (uint16_t) ZCL_COLOR_CLUSTER_REVISION;
+    }
+    else if (attributeId == ColorControl::Attributes::GeneratedCommandList::Id){
+
+    }
+    else if (attributeId == ColorControl::Attributes::AcceptedCommandList::Id){
+
+    }
+    else if (attributeId == ColorControl::Attributes::AttributeList::Id){
+        
+    }
+    else if (attributeId == ColorControl::Attributes::EventList::Id){
+        
+    }
+    else if ((attributeId == ColorControl::Attributes::FeatureMap::Id))
+    {
+        *buffer = 0;
+    }
+    else
+    {
+        return Protocols::InteractionModel::Status::Failure;
+    }
+
+    return Protocols::InteractionModel::Status::Success;
+}
+
+Protocols::InteractionModel::Status HandleWriteColorControlAttribute(chip::AttributeId attributeId, uint8_t * buffer,EndpointId endpoint)
+{
+    // ChipLogProgress(DeviceLayer, "HandleWriteControlAttribute: attrId=%d --- buffer=%d", attributeId, * buffer);
+    string deviceID = deviceRD.GetDeviceWithEndpoint(endpoint)->DeviceID;
+    if (attributeId == ColorControl::Attributes::RemainingTime::Id){
+
+    }
+    if (attributeId == ColorControl::Attributes::ColorTemperatureMireds::Id){
+#if HC_RANGDONG
+        MqttControllCct(
+            deviceID,
+            *buffer
+        );
+        deviceRD.UpdateCctLight(deviceRD.GetDeviceWithEndpoint(endpoint)->DeviceID, *buffer);
+#endif        
+    }
+    if (attributeId == ColorControl::Attributes::CurrentHue::Id){
+#if HC_RANGDONG
+        MqttControllHSV(
+            deviceID,
+            *buffer,
+            (uint8_t)deviceRD.GetSaturationLight(endpoint),
+            (uint8_t)deviceRD.GetLightnessLight(endpoint),
+            (uint8_t)deviceRD.GetDimLight(endpoint)
+        );
+        deviceRD.UpdateHueLight(deviceRD.GetDeviceWithEndpoint(endpoint)->DeviceID, *buffer);
+#endif       
+    }
+    if (attributeId == ColorControl::Attributes::CurrentSaturation::Id){
+#if HC_RANGDONG
+        MqttControllHSV(
+            deviceID,
+            (uint8_t)deviceRD.GetHueLight(endpoint),
+            *buffer,
+            (uint8_t)deviceRD.GetLightnessLight(endpoint),
+            (uint8_t)deviceRD.GetDimLight(endpoint)
+        );
+        deviceRD.UpdateSaturationLight(deviceRD.GetDeviceWithEndpoint(endpoint)->DeviceID, *buffer);
+#endif
+    }
+    else
+    {
+        return Protocols::InteractionModel::Status::Failure;
+    }
+
+    return Protocols::InteractionModel::Status::Success;
+}
+
+Protocols::InteractionModel::Status HandleReadLevelControlAttribute(chip::AttributeId attributeId, uint8_t * buffer, uint16_t maxReadLength, EndpointId endpoint){
+    
+    // ChipLogProgress(DeviceLayer, "HandleReadLevelControlAttribute: attrId=%d, maxReadLength=%d", attributeId, maxReadLength);
+
+    if( attributeId ==LevelControl::Attributes::CurrentLevel::Id && maxReadLength == 1){
+        
+        *buffer = (uint8_t)deviceRD.GetDimLight(endpoint);
+    }
+    else if(attributeId == LevelControl::Attributes::Options::Id && maxReadLength == 1){
+
+    }
+    else if(attributeId == LevelControl::Attributes::MinLevel::Id && maxReadLength == 1){
+        *buffer = 0;
+    }
+    else if(attributeId == LevelControl::Attributes::MaxLevel::Id && maxReadLength == 1){
+        *buffer = 100;
+    }
+    else if(attributeId == LevelControl::Attributes::ClusterRevision::Id){
+        *buffer = (uint16_t) ZCL_DIM_CLUSTER_REVISION;
+    }
+    else if (attributeId == LevelControl::Attributes::GeneratedCommandList::Id){
+
+    }
+    else if (attributeId == LevelControl::Attributes::AcceptedCommandList::Id){
+
+    }
+    else if (attributeId == LevelControl::Attributes::AttributeList::Id){
+        
+    }
+    else if (attributeId == LevelControl::Attributes::EventList::Id){
+        
+    }
+    else if ((attributeId == LevelControl::Attributes::FeatureMap::Id))
+    {
+        *buffer = 0;
+    }
+    else
+    {
+        return Protocols::InteractionModel::Status::Failure;
+    }
+    return Protocols::InteractionModel::Status::Success;
+}
+
+Protocols::InteractionModel::Status HandleWriteLevelControlAttribute(chip::AttributeId attributeId, uint8_t * buffer, EndpointId endpoint){
+    
+    // ChipLogProgress(DeviceLayer, "HandleWriteLevelControlAttribute: attrId=%d --- buffer=%d", attributeId, * buffer);
+    
+    if(attributeId == LevelControl::Attributes::CurrentLevel::Id){
+#if HC_RANGDONG
+        MqttControllDim(
+            deviceRD.GetDeviceWithEndpoint(endpoint)->DeviceID,
+            *buffer
+        );
+        deviceRD.UpdateDimLight(
+            deviceRD.GetDeviceWithEndpoint(endpoint)->DeviceID,
+            (unsigned int)*buffer
+        );
+#endif
+    }
+    else{
+        return Protocols::InteractionModel::Status::Failure;
+    }
+
+    return Protocols::InteractionModel::Status::Success;
+}
+
+Protocols::InteractionModel::Status HandleReadBindingAttribute(chip::AttributeId attributeId, uint8_t * buffer, uint16_t maxReadLength)
+{
+
+    if ((attributeId == Binding::Attributes::ClusterRevision::Id) && (maxReadLength == 2))
+    {
+        *buffer = (uint16_t)ZCL_BINDING_CLUSTER_REVISION;
+      
+    }  
+    else if ((attributeId == Binding::Attributes::FeatureMap::Id))
+    {
+        uint16_t featureMap = 0;
+        memcpy(buffer, &featureMap, sizeof(featureMap));
+    }
+    else if (attributeId == Binding::Attributes::GeneratedCommandList::Id){
+
+    }
+    else if (attributeId == Binding::Attributes::AcceptedCommandList::Id){
+
+    }
+    else if (attributeId == Binding::Attributes::AttributeList::Id){
+        
+    }
+    else if (attributeId == Binding::Attributes::EventList::Id){
+        
+    }
+    else
+    {
+        return Protocols::InteractionModel::Status::Failure;
+    }
+
+    return Protocols::InteractionModel::Status::Success;
+}
+
+Protocols::InteractionModel::Status HandleReadIdentifyAttribute(chip::AttributeId attributeId, uint8_t * buffer,
+                                                 uint16_t maxReadLength)
+{
+    // printf("HandleReadIdentifyAttribute %d\n", attributeId);
+    if ((attributeId == Identify::Attributes::ClusterRevision::Id))
+    {
+       *buffer = (uint16_t)ZCL_IDENTIFY_CLUSTER_REVISION;
+    }  
+    else if ((attributeId == Identify::Attributes::FeatureMap::Id))
+    {
+
+    }
+    else if ((attributeId == Identify::Attributes::IdentifyTime::Id)){
+        *buffer = 0;
+    }
+    else if (attributeId == Identify::Attributes::IdentifyType::Id){
+
+    }
+    else if (attributeId == Identify::Attributes::GeneratedCommandList::Id){
+
+    }
+    else if (attributeId == Identify::Attributes::AcceptedCommandList::Id){
+
+    }
+    else if (attributeId == Identify::Attributes::AttributeList::Id){
+        
+    }
+    else if (attributeId == Identify::Attributes::EventList::Id){
+        
+    }
+    else
+    {
+        return Protocols::InteractionModel::Status::Failure;
+    }
+
+    return Protocols::InteractionModel::Status::Success;
+}
+
+Protocols::InteractionModel::Status emberAfExternalAttributeReadCallback(EndpointId endpoint, ClusterId clusterId,
+                                                   const EmberAfAttributeMetadata * attributeMetadata, uint8_t * buffer,
+                                                   uint16_t maxReadLength)
+{
+    uint16_t endpointIndex = emberAfGetDynamicIndexFromEndpoint(endpoint);
+
+    ChipLogProgress(DeviceLayer, "emberAfExternalAttributeReadCallback: ep=%d -- clusterId = %d --- endpointIndex=%d", endpoint, clusterId, endpointIndex);
+
+    Protocols::InteractionModel::Status ret = Protocols::InteractionModel::Status::Failure;
+
+    if ((endpointIndex < CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT))
+    {
+        // Device * dev = gDevices[endpointIndex];
+
+        if (clusterId == BridgedDeviceBasicInformation::Id)
+        {
+            ret = HandleReadBridgedDeviceBasicAttribute(attributeMetadata->attributeId, buffer, maxReadLength, endpoint);
+        }
+        else if (clusterId == OnOff::Id)
+        {
+            ret = HandleReadOnOffAttribute(attributeMetadata->attributeId, buffer, maxReadLength, endpoint);
+        }
+        else if (clusterId == Binding::Id)
+        {
+            ret  = HandleReadBindingAttribute(attributeMetadata->attributeId, buffer, maxReadLength);
+        }
+        else if(clusterId == LevelControl::Id){
+            ret  = HandleReadLevelControlAttribute(attributeMetadata->attributeId, buffer, maxReadLength, endpoint);
+        }
+        else if(clusterId == ColorControl::Id){            
+            ret = HandleReadColorControlAttribute(attributeMetadata->attributeId, buffer, maxReadLength, endpoint);
+        }
+        else if(clusterId == Identify::Id){
+            ret = HandleReadIdentifyAttribute(attributeMetadata->attributeId, buffer, maxReadLength);
+        }
+        else if(clusterId == Switch::Id){
+            ret = HandleReadSwitchAttribute(attributeMetadata->attributeId, buffer, maxReadLength, endpoint);
+        }
+
+    }
+
+    return ret;
+}
+
+Protocols::InteractionModel::Status emberAfExternalAttributeWriteCallback(EndpointId endpoint, ClusterId clusterId,
+                                                    const EmberAfAttributeMetadata * attributeMetadata, uint8_t * buffer)
+{
+    uint16_t endpointIndex = emberAfGetDynamicIndexFromEndpoint(endpoint);
+
+    Protocols::InteractionModel::Status ret = Protocols::InteractionModel::Status::Failure;
+
+    // ChipLogProgress(DeviceLayer, "emberAfExternalAttributeWriteCallback: ep=%d", endpoint);
+
+    if (endpointIndex < CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT)
+    {
+        if (clusterId == OnOff::Id)
+        {
+            ret = HandleWriteOnOffAttribute(attributeMetadata->attributeId, buffer, endpoint);
+        }
+        else if(clusterId == ColorControl::Id){
+            ret = HandleWriteColorControlAttribute(attributeMetadata->attributeId, buffer, endpoint);
+        }
+        else if(clusterId == LevelControl::Id){
+            ret = HandleWriteLevelControlAttribute( attributeMetadata->attributeId, buffer, endpoint);
+        }
+    }
+
+    return ret;
+}
+
+
+void ApplicationInit()
+{
+
+    sEthernetNetworkCommissioningInstance.Init();
+    // InitOTARequestor();
+}
+
+const EmberAfDeviceType gBridgedTempLightDeviceTypes[] = {  { DEVICE_TYPE_COLOR_TEMPERATURE_LIGHT, DEVICE_VERSION_DEFAULT },
+                                                            { DEVICE_TYPE_BRIDGED_NODE, DEVICE_VERSION_DEFAULT } };
+
+const EmberAfDeviceType gBridgedExtendedLightDeviceTypes[] = {  {DEVICE_TYPE_EXTENAL_LIGHT, DEVICE_VERSION_DEFAULT },
+                                                                {DEVICE_TYPE_BRIDGED_NODE, DEVICE_VERSION_DEFAULT } };
+
+const EmberAfDeviceType gBridgedOnOffSwitchDeviceTypes[] = {{DEVICE_TYPE_LO_SWITCH_LIGHT, DEVICE_VERSION_DEFAULT },
+                                                            {DEVICE_TYPE_BRIDGED_NODE, DEVICE_VERSION_DEFAULT }};
+
+const EmberAfDeviceType gBridgedColorDimmerSwitchDeviceTypes[] = {{ DEVICE_TYPE_COLOR_DIMMER_SWITCH, DEVICE_VERSION_DEFAULT},
+                                                                  { DEVICE_TYPE_BRIDGED_NODE, DEVICE_VERSION_DEFAULT }};
+
+/***********************************************MQTT Rang Dong Processing**********************************************************/
+#if HC_RANGDONG
+
+static void AddOnOffSwitch(string deviceID, string mac, string version, unsigned int hcID){
+
+    DeviceInformation deviceBase;
+    deviceBase.DeviceTypeID                 = 0x103;
+    deviceBase.DeviceID                     = deviceID;
+    deviceBase.SerialNumber                 = mac;
+    deviceBase.Version                      = version;  
+    deviceBase.HomeCenterID                 = hcID;
+    deviceBase.NodeLabel                    = "OnOff Switch";
+
+    int endpoint = AddDeviceEndpoint(
+        &bridgedOnOffSwitchEndpoint, 
+        Span<const EmberAfDeviceType>(gBridgedOnOffSwitchDeviceTypes), 
+        Span<DataVersion>(gOnOffSwitchDataVersions), 
+        1, 
+        true, 
+        0
+    );
+
+    if(endpoint != -1){
+        deviceBase.EndpointID = endpoint;
+        deviceRD.AddDevice(deviceBase);
+    }
+}
+
+static void AddTempLight(string deviceID, string mac, string version, unsigned int hcID){
+    DeviceInformation deviceBase;
+    deviceBase.DeviceTypeID                 = 0x10C;
+    deviceBase.DeviceID                     = deviceID;
+    deviceBase.SerialNumber                 = mac;
+    deviceBase.Version                      = version;  
+    deviceBase.HomeCenterID                 = hcID;
+    deviceBase.NodeLabel                    = "Color Temperature Light";
+
+    int endpoint = AddDeviceEndpoint(
+        &bridgedTempLightEndpoint, 
+        Span<const EmberAfDeviceType>(gBridgedTempLightDeviceTypes), 
+        Span<DataVersion>(gTempLightDataVersions), 
+        1, 
+        true, 
+        0
+    );
+    if(endpoint != -1){
+        deviceBase.EndpointID = endpoint;
+        deviceRD.AddDevice(deviceBase);
+    }
+
+}
+
+static void AddExtendedLight(string deviceID, string mac, string version, unsigned int hcID){
+    DeviceInformation deviceBase;
+    deviceBase.DeviceTypeID                 = 0x10D;
+    deviceBase.DeviceID                     = deviceID;
+    deviceBase.SerialNumber                 = mac;
+    deviceBase.Version                      = version;  
+    deviceBase.HomeCenterID                 = hcID;
+    deviceBase.NodeLabel                    = "RGB Light";
+
+    int endpoint = AddDeviceEndpoint(
+        &bridgedExtendedLightEndpoint, 
+        Span<const EmberAfDeviceType>(gBridgedExtendedLightDeviceTypes), 
+        Span<DataVersion>(gExtendedLightDataVersions), 
+        1, 
+        true, 
+        0
+    );
+    if(endpoint != -1){
+        deviceBase.EndpointID = endpoint;
+        deviceRD.AddDevice(deviceBase);
+    }
+
+}
+
+static void RemoveDevice(string deviceID){
+    
+    DeviceInformation * device = deviceRD.GetDeviceWithID(deviceID);
+
+    if(device == nullptr)
+        return;
+
+    if(deviceRD.isTripleSwitch(device->HomeCenterID)){
+        RemoveDeviceEndpoint((short unsigned int) device->EndpointID);
+        deviceRD.RemoveDeviceWithEndpoint((short unsigned int) device->EndpointID);
+
+        device = deviceRD.GetDeviceWithID(deviceID + "_2");
+        RemoveDeviceEndpoint((short unsigned int) device->EndpointID);
+        deviceRD.RemoveDeviceWithEndpoint((short unsigned int) device->EndpointID);
+
+        device = deviceRD.GetDeviceWithID(deviceID + "_3");
+    }
+    else if(deviceRD.isQuadraSwitch(device->HomeCenterID)){
+        RemoveDeviceEndpoint((short unsigned int) device->EndpointID);
+        deviceRD.RemoveDeviceWithEndpoint((short unsigned int) device->EndpointID);
+
+        device = deviceRD.GetDeviceWithID(deviceID + "_2");
+        RemoveDeviceEndpoint((short unsigned int) device->EndpointID);
+        deviceRD.RemoveDeviceWithEndpoint((short unsigned int) device->EndpointID);
+
+        device = deviceRD.GetDeviceWithID(deviceID + "_3");
+        RemoveDeviceEndpoint((short unsigned int) device->EndpointID);
+        deviceRD.RemoveDeviceWithEndpoint((short unsigned int) device->EndpointID);
+
+        device = deviceRD.GetDeviceWithID(deviceID + "_4");
+
+    }
+    else if(deviceRD.isDoubleSwitch(device->HomeCenterID)){
+        RemoveDeviceEndpoint((short unsigned int) device->EndpointID);
+        deviceRD.RemoveDeviceWithEndpoint((short unsigned int) device->EndpointID);
+
+        device = deviceRD.GetDeviceWithID(deviceID + "_2");
+    }
+
+    RemoveDeviceEndpoint((short unsigned int) device->EndpointID);
+    deviceRD.RemoveDeviceWithEndpoint((short unsigned int) device->EndpointID);
+    
+    // deviceRD.GetAllDevice();
+}
+
+static void UpdateOnOffSwitch(DeviceInformation * device, Json::Value * data){
+
+    if((*data).isMember("bt")){
+        deviceRD.UpdateOnOffSwitch(device->DeviceID, (bool)(*data)["bt"].asInt());
+        if((*data)["bt"].asInt() == 1){
+            LightSwitchMgr::GetInstance().TriggerLightSwitchAction(LightSwitchMgr::LightSwitchAction::On, false, (short unsigned int)device->EndpointID, OnOff::Id);
+            Clusters::SwitchServer::Instance().OnSwitchLatch((short unsigned int)device->EndpointID, 1);
+        }
+        else{
+            LightSwitchMgr::GetInstance().TriggerLightSwitchAction(LightSwitchMgr::LightSwitchAction::Off, false, (short unsigned int)device->EndpointID, OnOff::Id);
+            Clusters::SwitchServer::Instance().OnSwitchLatch((short unsigned int)device->EndpointID, 0);
+        }
+    }
+
+    if((*data).isMember("bt2")){
+        printf("BT2");
+    }
+
+    if((*data).isMember("bt3")){
+        printf("BT3");
+    }   
+
+    if((*data).isMember("bt4")){
+        printf("BT4");
+    } 
+}
+
+static void UpdateColorTempLight(string deviceID, Json::Value * data){
+    // printf("Update Color Temperature Light\n");
+
+    if((*data)["onoff"].isObject()){
+        deviceRD.UpdateOnOffLight(deviceID, (bool)(*data)["onoff"].asInt());
+    }
+    else if((*data)["dim"].isObject()){
+        deviceRD.UpdateDimLight(deviceID, (uint8_t)(*data)["dim"].asInt());
+    }
+    else if((*data)["cct"].isObject()){
+        deviceRD.UpdateCctLight(deviceID, (uint8_t)(*data)["cct"].asInt());
+    }
+}
+
+static void UpdateExtendedLight(string deviceID, Json::Value * data){
+    // printf("Update Extended light \n");
+
+    if((*data)["onoff"].isObject()){
+        deviceRD.UpdateOnOffLight(deviceID, (bool)(*data)["onoff"].asInt());
+    }
+    else if((*data)["dim"].isObject()){
+        deviceRD.UpdateDimLight(deviceID, (uint8_t)(*data)["dim"].asInt());
+    }
+    else if((*data)["h"].isObject()){
+        deviceRD.UpdateHueLight(deviceID, (uint8_t)(*data)["h"].asInt());
+    }
+    else if((*data)["s"].isObject()){
+        deviceRD.UpdateSaturationLight(deviceID, (uint8_t)(*data)["s"].asInt());
+    }
+    else if((*data)["l"].isObject()){
+        deviceRD.UpdateLightnessLight(deviceID, (uint8_t)(*data)["l"].asInt());
+    }
+}
+
+static void UpdateNameDevice(string deviceID, string name){
+    DeviceInformation * device = deviceRD.GetDeviceWithID(deviceID);
+
+    if(device == nullptr)
+        return;
+
+    deviceRD.UpdateNameWithID(deviceID, name);
+
+    if(deviceRD.isTripleSwitch(device->HomeCenterID)){
+        deviceRD.UpdateNameWithID(deviceID + "_2", name);
+        deviceRD.UpdateNameWithID(deviceID + "_3", name);
+    }
+    else if(deviceRD.isQuadraSwitch(device->HomeCenterID)){
+        deviceRD.UpdateNameWithID(deviceID + "_2", name);
+        deviceRD.UpdateNameWithID(deviceID + "_3", name);
+        deviceRD.UpdateNameWithID(deviceID + "_4", name);
+    }
+    else if(deviceRD.isDoubleSwitch(device->HomeCenterID)){
+        deviceRD.UpdateNameWithID(deviceID + "_2", name);
+    }
+
+}
+
+static void message_callback(struct mosquitto *_mosq, void *obj, const struct mosquitto_message *message){
+	// printf("got message '%s' for topic '%s'\n", (char*) message->payload, message->topic);
+
+    string messageStr;
+    Json::Reader readerJson;
+    Json::Value messageJson;
+    messageStr.assign((const char*)message->payload, message->payloadlen);
+    readerJson.parse(messageStr, messageJson);
+
+    if(messageJson["cmd"].compare("newDev") == 0)
+    {
+        int deviceTypeID            = messageJson["data"]["device"][0]["type"].asInt();
+        string deviceID             = messageJson["data"]["device"][0]["id"].asString();
+        string mac                  = messageJson["data"]["device"][0]["mac"].asString();
+        string version              = messageJson["data"]["device"][0]["ver"].asString();
+
+        if(deviceRD.isTripleSwitch(deviceTypeID)){
+            AddOnOffSwitch(deviceID, mac, version, deviceTypeID);
+            AddOnOffSwitch(deviceID + "_2", mac, version, deviceTypeID);
+            AddOnOffSwitch(deviceID + "_3", mac, version, deviceTypeID);
+        }
+        else if(deviceRD.isQuadraSwitch(deviceTypeID)){
+            AddOnOffSwitch(deviceID, mac, version, deviceTypeID);
+            AddOnOffSwitch(deviceID + "_2", mac, version, deviceTypeID);
+            AddOnOffSwitch(deviceID + "_3", mac, version, deviceTypeID);
+            AddOnOffSwitch(deviceID + "_4", mac, version, deviceTypeID);
+        }
+        else if(deviceRD.isDoubleSwitch(deviceTypeID)){
+            AddOnOffSwitch(deviceID, mac, version, deviceTypeID);
+            AddOnOffSwitch(deviceID + "_2", mac, version, deviceTypeID);
+        }
+        else if(deviceRD.isSingleSwitch(deviceTypeID)){
+            AddOnOffSwitch(deviceID, mac, version, deviceTypeID);
+        }
+        else if(deviceRD.isExtendedLight(deviceTypeID)){
+            AddExtendedLight(deviceID, mac, version, deviceTypeID);
+        }
+        else if(deviceRD.isColorTempLight(deviceTypeID)){
+            AddTempLight(deviceID, mac, version, deviceTypeID);
+        }
+    }
+    else if(messageJson["cmd"].compare("updateDeviceName") == 0){
+
+        UpdateNameDevice(
+            messageJson["data"]["id"].asString(),
+            messageJson["data"]["name"].asString()
+        );
+    }
+    else if(messageJson["cmd"].compare("delDevRsp") == 0){
+        for(unsigned int i = 0; i < messageJson["data"]["success"].size(); i++){
+            string deviceID = messageJson["data"]["success"][i].asString();
+            RemoveDevice(deviceID);
+        }
+    }
+    else if(messageJson["cmd"].compare("deviceUpdate") == 0){
+        string deviceID             = messageJson["data"]["device"][0]["id"].asString();
+        Json::Value data            = messageJson["data"]["device"][0]["data"];
+        DeviceInformation * device    = deviceRD.GetDeviceWithID(deviceID);
+
+        if(device == nullptr)
+            return;
+
+        if(device->reachable == false){
+            EventNumber eventNumber;
+            Clusters::BridgedDeviceBasicInformation::Events::ReachableChanged::Type event{1};
+            device->reachable = true;
+            LogEvent(event, (short unsigned int)device->EndpointID, eventNumber);
+        }
+            
+        if(device->DeviceTypeID == 0x10C){
+            UpdateColorTempLight(deviceID, &data);
+        }
+        else if(device->DeviceTypeID == 0x10D){
+            UpdateExtendedLight(deviceID, &data);
+        }
+        else if(device->DeviceTypeID == 0x103){
+            UpdateOnOffSwitch(device, &data);
+        }
+    }
+    else if(messageJson["cmd"].compare("resetHcRsp") == 0 ){
+        if(messageJson["data"]["code"].asInt() == 0){
+            deviceRD.Reset();
+        }
+    }
+}
+
+#endif
+/***********************************************MQTT Rang Dong Processing**********************************************************/
+
+#define POLL_INTERVAL_MS (100)
+uint8_t poll_prescale = 0;
+
+bool kbhit()
+{
+    int byteswaiting;
+    ioctl(0, FIONREAD, &byteswaiting);
+    return byteswaiting > 0;
+}
+
+const int16_t oneDegree = 100;
+
+void * bridge_polling_thread(void * context)
+{
+    bool light1_added = true;
+    if(deviceRD.GetDeviceWithEndpoint(3) == nullptr)
+        light1_added = false;
+    bool light2_added = false;
+    while (true)
+    {
+        if (kbhit())
+        {
+            int ch = getchar();
+
+            // Commands used for the actions bridge test plan.
+            if (ch == '2' && light2_added == false)
+            {
+                AddTempLight("a99ec455-7522-d43b-9fab-acd567d02a81", "502C3038C1A1", "1.1", 12001);
+                light2_added = true;
+            }
+            else if (ch == '4' && light1_added == true)
+            {
+                // TC-BR-2 step 4, Remove Light 1
+                RemoveDevice("7657a122-ec31-7338-ac12-25c481cb17eb");
+                light1_added = false;
+            }
+            else if (ch == '5' && light1_added == false)
+            {
+                // TC-BR-2 step 5, Add Light 1 back
+                AddTempLight("7657a122-ec31-7338-ac12-25c481cb17eb", "502C3038C1A2", "1.1", 12001);
+                light1_added = true;
+            }
+            else if (ch == 'b')
+            {
+                // TC-BR-3 step 1b, rename lights
+                if (light1_added)
+                    deviceRD.UpdateNodeLabelWithEndpoint(3, "Light 1b");
+            }
+            else if (ch == 'c')
+            {
+                // TC-BR-3 step 2c, change the state of the lights
+                if (light1_added)
+                {
+                    bool state = !deviceRD.GetOnOffLight(3);
+                    deviceRD.UpdateOnOffLight(deviceRD.GetDeviceWithEndpoint(3)->DeviceID, state);
+                }
+            }
+            else if(ch == 'v'){
+                DeviceInformation * device = deviceRD.GetDeviceWithEndpoint(3);
+                device->reachable = true;
+                EventNumber eventNumber;
+                Clusters::BridgedDeviceBasicInformation::Events::ReachableChanged::Type event{1};
+                if (CHIP_NO_ERROR != LogEvent(event, (short unsigned int)device->EndpointID, eventNumber))
+                {
+                    ChipLogError(Zcl, "Failed to record ReachableChanged event");
+                }
+            }
+            else if(ch == 'u'){
+                DeviceInformation * device = deviceRD.GetDeviceWithEndpoint(3);
+                device->reachable = false;
+                EventNumber eventNumber;
+                Clusters::BridgedDeviceBasicInformation::Events::ReachableChanged::Type event{0};
+                if (CHIP_NO_ERROR != LogEvent(event, (short unsigned int)device->EndpointID, eventNumber))
+                {
+                    ChipLogError(Zcl, "Failed to record ReachableChanged event");
+                }
+            }
+            else if(ch == 'e'){
+                // Clusters::Switch::Attributes::CurrentPosition::Set(6, 1);
+                // Trigger event
+                Clusters::SwitchServer::Instance().OnSwitchLatch(6, 1);
+            }
+            else if(ch == 'r'){
+                // Clusters::Switch::Attributes::CurrentPosition::Set(6, 0);
+                // Trigger event
+                Clusters::SwitchServer::Instance().OnSwitchLatch(6, 0);
+            }
+            else if(ch == 't'){
+                EventNumber eventNumber;
+                Clusters::BridgedDeviceBasicInformation::Events::StartUp::Type event;
+                if (CHIP_NO_ERROR != LogEvent(event, 0, eventNumber))
+                {
+                    ChipLogError(Zcl, "Failed to record ReachableChanged event");
+                }
+            }
+            else if(ch == 'y'){
+                EventNumber eventNumber;
+                Clusters::BridgedDeviceBasicInformation::Events::ReachableChanged::Type event{1};
+                if (CHIP_NO_ERROR != LogEvent(event, 3, eventNumber))
+                {
+                    ChipLogError(Zcl, "Failed to record ReachableChanged event");
+                }
+            }
+            continue;
+        }
+        // Sleep to avoid tight loop reading commands
+        usleep(POLL_INTERVAL_MS * 1000);
+    }
+
+    return nullptr;
+}
+
+int main(int argc, char * argv[])
+{
+    // printf("Starting+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!");
+#if HC_RANGDONG
+    deviceRD.Init();
+    mosq = MqttConnect();
+    mosquitto_message_callback_set(mosq, message_callback);
+#endif
+    
+    if (ChipLinuxAppInit(argc, argv) != 0)
+    {
+        return -1;
+    }
+    // Init Data Model and CHIP App Server
+    static chip::CommonCaseDeviceServerInitParams initParams;
+    (void) initParams.InitializeStaticResourcesBeforeServerInit();
+
+    initParams.interfaceId = LinuxDeviceOptions::GetInstance().interfaceId;
+    chip::Server::GetInstance().Init(initParams);
+    RunOTARequestor();
+    /********************************************************OTA******************************************************/
+
+    // if (gRequestorCore.GetCurrentUpdateState() == OTAUpdateStateEnum::kApplying)
+    // {
+    //     if (kMaxFilePathSize <= strlen(kImageExecPath))
+    //     {
+    //         ChipLogError(SoftwareUpdate, "Buffer too small for the new image file path: %s", kImageExecPath);
+    //         return -1;
+    //     }
+
+    //     argv[0] = kImageExecPath;
+    //     execv(argv[0], argv);
+
+    //     // If successfully executing the new image, execv should not return
+    //     ChipLogError(SoftwareUpdate, "The OTA image is invalid");
+    // }
+
+    /********************************************************OTA******************************************************/
+
+    // gExampleDeviceInfoProvider.SetStorageDelegate(&Server::GetInstance().GetPersistentStorage());
+    // chip::DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);
+
+    // Initialize device attestation config
+    SetDeviceAttestationCredentialsProvider(Examples::GetExampleDACProvider());
+    CHIP_ERROR err = LightSwitchMgr::GetInstance().Init(kLightSwitchEndpoint, kGenericSwitchEndpoint);
+
+
+    if (err != CHIP_NO_ERROR)
+    {
+        ChipLogProgress(DeviceLayer, "LightSwitchMgr Init failed!");
+    }
+
+    // emberAfEndpointEnableDisable(emberAfEndpointFromIndex(static_cast<uint16_t>(emberAfFixedEndpointCount() - 2)), false);
+    emberAfEndpointEnableDisable(emberAfEndpointFromIndex(static_cast<uint16_t>(emberAfFixedEndpointCount() - 1)), false);
+
+#if HC_RANGDONG
+
+    DeviceInformation * device;
+    for(unsigned int i=0; i < deviceRD.GetNumberDevices(); i++){
+        device = deviceRD.GetDeviceWithIndex(i);
+        if(device->DeviceTypeID == 0x10C)
+        {
+            AddDeviceEndpoint(
+                &bridgedTempLightEndpoint, 
+                Span<const EmberAfDeviceType>(gBridgedTempLightDeviceTypes), 
+                Span<DataVersion>(gTempLightDataVersions), 
+                1, 
+                false, 
+                device->EndpointID
+            );
+
+        }
+        else if(device->DeviceTypeID == 0x10D){
+            AddDeviceEndpoint(
+                &bridgedExtendedLightEndpoint, 
+                Span<const EmberAfDeviceType>(gBridgedExtendedLightDeviceTypes), 
+                Span<DataVersion>(gExtendedLightDataVersions), 
+                1, 
+                false, 
+                device->EndpointID
+            );
+        }
+        else if(device->DeviceTypeID == 0x103){
+            AddDeviceEndpoint(
+                &bridgedOnOffSwitchEndpoint, 
+                Span<const EmberAfDeviceType>(gBridgedOnOffSwitchDeviceTypes),
+                Span<DataVersion>(gOnOffSwitchDataVersions), 
+                1, 
+                false, 
+                device->EndpointID
+            );
+        }
+        else if(device->DeviceTypeID == 0x105){
+            AddDeviceEndpoint(
+                &bridgedColorDimmerSwitchEndpoint, 
+                Span<const EmberAfDeviceType>(gBridgedColorDimmerSwitchDeviceTypes), 
+                Span<DataVersion>(gColorDimmerSwitchDataVersions), 
+                1, 
+                false, 
+                device->EndpointID
+            );
+        }
+    }
+
+    // AddDeviceEndpoint(
+    //     &bridgedOnOffSwitchEndpoint, 
+    //     Span<const EmberAfDeviceType>(gBridgedOnOffSwitchDeviceTypes),
+    //     Span<DataVersion>(gOnOffSwitchDataVersions), 
+    //     1, 
+    //     true, 
+    //     0
+    // );
+#endif
+    EventNumber eventNumber;
+    Clusters::BridgedDeviceBasicInformation::Events::StartUp::Type event;
+    LogEvent(event, 0, eventNumber);
+    {
+        pthread_t poll_thread;
+        int res = pthread_create(&poll_thread, nullptr, bridge_polling_thread, nullptr);
+        if (res)
+        {
+            printf("Error creating polling thread: %d\n", res);
+            exit(1);
+        }
+    }
+
+    ApplicationInit();
+    chip::DeviceLayer::PlatformMgr().RunEventLoop();
+#if HC_RANGDONG
+    mosquitto_destroy(mosq);
+#endif
+    return 0;
+}

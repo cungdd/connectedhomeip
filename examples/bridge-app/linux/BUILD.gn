@@ -21,16 +21,25 @@ assert(chip_build_tools)
 executable("chip-bridge-app") {
   sources = [
     "${chip_root}/examples/bridge-app/bridge-common/include/CHIPProjectAppConfig.h",
-    "${chip_root}/examples/bridge-app/linux/bridged-actions-stub.cpp",
-    "Device.cpp",
-    "include/Device.h",
+    "src/BindingHandler.cpp",
+    "src/LightSwitchMgr.cpp",
+    "src/DeviceRD.cpp",
+    "src/Mqtt.cpp",
+    "src/OTA.cpp",
+    "include/Mqtt.h",
+    "include/DeviceRD.h",
     "include/main.h",
-    "main.cpp",
+    "include/BindingHandler.h",
+    "include/LightSwitchMgr.h",
+    "include/OTA.h",
+    "src/main.cpp"
   ]
 
   deps = [
     "${chip_root}/examples/bridge-app/bridge-common",
     "${chip_root}/examples/platform/linux:app-main",
+    "${chip_root}/src/platform",
+    "${chip_root}/src/app/server",
     "${chip_root}/src/lib",
   ]
 
