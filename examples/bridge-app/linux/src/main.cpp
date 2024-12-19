@@ -60,7 +60,7 @@
 /*----------------------------------------------------------------
 ------------------------------- Dev-----------------------------
 ----------------------------------------------------------------*/
-#define HC_RANGDONG 1
+
 
 #include <app/clusters/switch-server/switch-server.h>
 #include <app-common/zap-generated/attributes/Accessors.h>
@@ -83,6 +83,9 @@ using namespace chip::Inet;
 using namespace chip::Transport;
 using namespace chip::DeviceLayer;
 using namespace chip::app::Clusters;
+
+#define TEST_DEVICE 1
+#define HC_RANGDONG 1
 
 #if HC_RANGDONG
     static struct mosquitto *mosq;
@@ -1411,7 +1414,41 @@ int main(int argc, char * argv[])
 
     emberAfEndpointEnableDisable(emberAfEndpointFromIndex(static_cast<uint16_t>(emberAfFixedEndpointCount() - 1)), false);
 
+#if TEST_DEVICE
+
+    AddDeviceEndpoint(
+        &bridgedTempLightEndpoint, 
+        Span<const EmberAfDeviceType>(gBridgedTempLightDeviceTypes), 
+        Span<DataVersion>(gTempLightDataVersions), 
+        1, 
+        false, 
+        3
+    );
+
+    AddDeviceEndpoint(
+        &bridgedExtendedLightEndpoint, 
+        Span<const EmberAfDeviceType>(gBridgedExtendedLightDeviceTypes), 
+        Span<DataVersion>(gExtendedLightDataVersions), 
+        1, 
+        false, 
+        4
+    );
+
+    AddDeviceEndpoint(
+        &bridgedOnOffSwitchEndpoint, 
+        Span<const EmberAfDeviceType>(gBridgedOnOffSwitchDeviceTypes),
+        Span<DataVersion>(gOnOffSwitchDataVersions), 
+        1, 
+        false, 
+        5
+    );
+
+#endif
+
 #if HC_RANGDONG
+
+    // Test Device
+    //
 
     DeviceInformation * device;
     for(unsigned int i=0; i < deviceRD.GetNumberDevices(); i++){
