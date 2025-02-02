@@ -79,6 +79,7 @@ constexpr uint16_t kOptionUserConsentState     = 'u';
 constexpr uint16_t kOptionWatchdogTimeout      = 'w';
 constexpr uint16_t kSkipExecImageFile          = 's';
 constexpr size_t kMaxFilePathSize              = 256;
+constexpr uint16_t requestedOtaBlockSize = 8192;
 
 uint32_t gPeriodicQueryTimeoutSec = 0;
 uint32_t gWatchdogTimeoutSec      = 0;
@@ -207,10 +208,12 @@ void InitOTARequestor(void)
     // Watchdog timeout can be set any time before a query image is sent
     gRequestorUser.SetWatchdogTimeout(gWatchdogTimeoutSec);
     gRequestorUser.SetSendNotifyUpdateApplied(gSendNotifyUpdateApplied);
+    gRequestorUser.SetMaxDownloadBlockSize(requestedOtaBlockSize);
 
     gRequestorStorage.Init(chip::Server::GetInstance().GetPersistentStorage());
     gRequestorCore.Init(chip::Server::GetInstance(), gRequestorStorage, gRequestorUser, gDownloader);
     gRequestorUser.Init(&gRequestorCore, &gImageProcessor);
+    
 
     gImageProcessor.SetOTAImageFile(gOtaDownloadPath);
     gImageProcessor.SetOTADownloader(&gDownloader);
