@@ -26,7 +26,6 @@ executable("chip-bridge-app") {
     "src/DeviceRD.cpp",
     "src/Mqtt.cpp",
     "src/OTA.cpp",
-    "src/DeviceMatter.cpp",
     "include/DeviceMatter.h",
     "include/Mqtt.h",
     "include/DeviceRD.h",

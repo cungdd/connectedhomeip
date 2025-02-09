@@ -84,7 +84,7 @@ constexpr uint16_t requestedOtaBlockSize = 8192;
 uint32_t gPeriodicQueryTimeoutSec = 0;
 uint32_t gWatchdogTimeoutSec      = 0;
 chip::Optional<bool> gRequestorCanConsent;
-static char gOtaDownloadPath[kMaxFilePathSize] = "/tmp/test.bin";
+static char gOtaDownloadPath[kMaxFilePathSize] = "/var/tmp/chip-brigde-app.exe";
 bool gAutoApplyImage                           = false;
 bool gSendNotifyUpdateApplied                  = true;
 bool gSkipExecImageFile                        = false;

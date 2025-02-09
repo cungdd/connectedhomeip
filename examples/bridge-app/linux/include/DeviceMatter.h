@@ -71,6 +71,12 @@ const int kDescriptorAttributeArraySize = 254;
 
     #define DEVICE_VERSION_DEFAULT 1
 
+    DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(contactAttrs)
+    DECLARE_DYNAMIC_ATTRIBUTE(BooleanState::Attributes::StateValue::Id, BOOLEAN, 1, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(BooleanState::Attributes::EventList::Id, ARRAY, 4, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(OnOff::Attributes::FeatureMap::Id, BITMAP32, 1, 0),
+        DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+
     // Declare On/Off cluster attributes
     DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(onOffAttrs)
     DECLARE_DYNAMIC_ATTRIBUTE(OnOff::Attributes::OnOff::Id, BOOLEAN, 1, 0),
@@ -97,6 +103,7 @@ const int kDescriptorAttributeArraySize = 254;
     DECLARE_DYNAMIC_ATTRIBUTE(ColorControl::Attributes::ColorTemperatureMireds::Id, INT8U, 1, 0),
     DECLARE_DYNAMIC_ATTRIBUTE(ColorControl::Attributes::ColorTempPhysicalMinMireds::Id, INT8U, 1, 0),
     DECLARE_DYNAMIC_ATTRIBUTE(ColorControl::Attributes::ColorTempPhysicalMaxMireds::Id, INT8U, 1, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(ColorControl::Attributes::RemainingTime::Id, INT16U, 2, 0),
     DECLARE_DYNAMIC_ATTRIBUTE(ColorControl::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
         DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
 
@@ -117,22 +124,19 @@ const int kDescriptorAttributeArraySize = 254;
     //     DECLARE_DYNAMIC_ATTRIBUTE(PowerSource::Attributes::FeatureMap::Id, BITMAP32, 4, 0), 
     //     DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
 
-    // DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(groupsAttrs)
-    // DECLARE_DYNAMIC_ATTRIBUTE(Groups::Attributes::NameSupport::Id, BITMAP8, 2, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(Groups::Attributes::GeneratedCommandList::Id, ARRAY, 2, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(Groups::Attributes::AcceptedCommandList::Id, ARRAY, 2, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(Groups::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
-    //     DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+    DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(groupsAttrs)
+    DECLARE_DYNAMIC_ATTRIBUTE(Groups::Attributes::NameSupport::Id, BITMAP8, 2, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(Groups::Attributes::GeneratedCommandList::Id, ARRAY, 2, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(Groups::Attributes::AcceptedCommandList::Id, ARRAY, 2, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(Groups::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+        DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
 
-    // DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(scenesAttrs)
-    // DECLARE_DYNAMIC_ATTRIBUTE(Scenes::Attributes::SceneCount::Id, INT8U, 1, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(Scenes::Attributes::CurrentScene::Id, INT8U, 1, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(Scenes::Attributes::CurrentGroup::Id, GROUP_ID, 1, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(Scenes::Attributes::SceneValid::Id, BOOLEAN, 1, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(Scenes::Attributes::NameSupport::Id, BITMAP8, 1, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(Scenes::Attributes::LastConfiguredBy::Id, NODE_ID, 1, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(Scenes::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
-    //     DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+    DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(scenesAttrs)
+    DECLARE_DYNAMIC_ATTRIBUTE(ScenesManagement::Attributes::SceneTableSize::Id, INT8U, 1, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(ScenesManagement::Attributes::EventList::Id, ARRAY, 4, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(ScenesManagement::Attributes::LastConfiguredBy::Id, NODE_ID, 1, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(ScenesManagement::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+        DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
 
     DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(identifyAttrs)
     DECLARE_DYNAMIC_ATTRIBUTE(Identify::Attributes::IdentifyTime::Id, INT16U, 2, 0),
@@ -148,31 +152,23 @@ const int kDescriptorAttributeArraySize = 254;
 
 
     // Dev Declare Temperature cluster attributes
-    // DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(temperatureAttrs)
-    // DECLARE_DYNAMIC_ATTRIBUTE(TemperatureMeasurement::Attributes::MeasuredValue::Id, INT16S, 2, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(TemperatureMeasurement::Attributes::MinMeasuredValue::Id, INT16S, 2, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(TemperatureMeasurement::Attributes::MaxMeasuredValue::Id, INT16S, 2, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(TemperatureMeasurement::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(TemperatureMeasurement::Attributes::EventList::Id, ARRAY, 4, 0),
-    //     DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+    DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(temperatureAttrs)
+    DECLARE_DYNAMIC_ATTRIBUTE(TemperatureMeasurement::Attributes::MeasuredValue::Id, INT16S, 2, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(TemperatureMeasurement::Attributes::MinMeasuredValue::Id, INT16S, 2, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(TemperatureMeasurement::Attributes::MaxMeasuredValue::Id, INT16S, 2, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(TemperatureMeasurement::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(TemperatureMeasurement::Attributes::EventList::Id, ARRAY, 4, 0),
+        DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
 
 
     // Dev Declare Humidity cluster attributes
-    // DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(humidityAttrs)
-    // DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::MeasuredValue::Id, INT8U, 1, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::MinMeasuredValue::Id, INT8U, 1, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::MaxMeasuredValue::Id, INT8U, 1, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::EventList::Id, ARRAY, 4, 0),
-    //     DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
-
-
-    // Dev Declare Door Look cluster attributes
-    // DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(doorlockAttrs)
-    // DECLARE_DYNAMIC_ATTRIBUTE(DoorLock::Attributes::DoorState::Id, BOOLEAN, 1, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::EventList::Id, ARRAY, 4, 0),
-    //     DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
+    DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(humidityAttrs)
+    DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::MeasuredValue::Id, INT8U, 1, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::MinMeasuredValue::Id, INT8U, 1, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::MaxMeasuredValue::Id, INT8U, 1, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(RelativeHumidityMeasurement::Attributes::EventList::Id, ARRAY, 4, 0),
+        DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
 
     // Declare Descriptor cluster attributes
     DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(descriptorAttrs)
@@ -188,20 +184,29 @@ const int kDescriptorAttributeArraySize = 254;
         DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::VendorName::Id, CHAR_STRING, 10, 0),
         DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::VendorID::Id, VENDOR_ID, 10, 0),
         DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::ProductName::Id, CHAR_STRING, 10, 0),
-        // DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::HardwareVersion::Id, INT8U, 10, 0),
+        DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::HardwareVersion::Id, INT8U, 10, 0),
         DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::HardwareVersionString::Id, CHAR_STRING, 10, 0),
-        // DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::SoftwareVersion::Id, INT8U, 10, 0),
+        DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::SoftwareVersion::Id, INT8U, 10, 0),
         DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::SoftwareVersionString::Id, CHAR_STRING, 10, 0),
-        // DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::PartNumber::Id, CHAR_STRING, 10, 0),
-        // DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::ProductURL::Id, CHAR_STRING, 10, 0),
+        DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::PartNumber::Id, CHAR_STRING, 10, 0),
+        DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::ProductURL::Id, CHAR_STRING, 10, 0),
         DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::SerialNumber::Id, CHAR_STRING, 10, 0),
-        // DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::UniqueID::Id, CHAR_STRING, 10, 0),
-        // DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::ManufacturingDate::Id, CHAR_STRING, 10, 0),
-        // DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::ProductLabel::Id, CHAR_STRING, 10, 0),
+        DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::UniqueID::Id, CHAR_STRING, 10, 0),
+        DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::ManufacturingDate::Id, CHAR_STRING, 10, 0),
+        DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::ProductLabel::Id, CHAR_STRING, 10, 0),
         DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::Reachable::Id, BOOLEAN, 1, 0),              /* Reachable */
         DECLARE_DYNAMIC_ATTRIBUTE(BridgedDeviceBasicInformation::Attributes::FeatureMap::Id, BITMAP32, 4, 0), /* feature map */
         DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
 
+    /**
+     * @brief Create Events
+     * 
+     */
+
+    constexpr EventId eventsContactSensor[] = {
+        app::Clusters::BooleanState::Events::StateChange::Id,
+        kInvalidEventId,
+    };
 
     constexpr EventId eventsBrigde[] = {
         app::Clusters::BridgedDeviceBasicInformation::Events::ReachableChanged::Id,
@@ -236,6 +241,8 @@ const int kDescriptorAttributeArraySize = 254;
         kInvalidCommandId,
     };
 
+
+
     // constexpr CommandId groupCommands[] = {
     //     app::Clusters::Groups::Commands::AddGroupResponse::Id,
     //     app::Clusters::Groups::Commands::ViewGroupResponse::Id,
@@ -255,19 +262,23 @@ const int kDescriptorAttributeArraySize = 254;
     //     app::Clusters::Scenes::Commands::EnhancedAddScene::Id,
     //     app::Clusters::Scenes::Commands::EnhancedViewScene::Id,
     //     app::Clusters::Scenes::Commands::CopyScene::Id,
+    //     app::Clusters::ScenesManagement
     //     kInvalidCommandId,
     // };
 
-    /*----------------------------------------------------------------
-    -----------------------------PTIT Dev-----------------------------
-    ----------------------------------------------------------------*/
+    /*----------------------------------------------------------------*/
+    /**
+     * @brief Construct a new declare dynamic cluster list begin object
+     * 
+     */
+    /*----------------------------------------------------------------*/
 
     DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedTempLightClusters)
     DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
     DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
     DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
-    // DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, nullptr, nullptr, nullptr, 0),
-    // DECLARE_DYNAMIC_CLUSTER(Scenes::Id, scenesAttrs, nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(ScenesManagement::Id, scenesAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
     DECLARE_DYNAMIC_CLUSTER(OnOff::Id, onOffAttrs, ZAP_CLUSTER_MASK(SERVER), onOffCommands, nullptr),
     DECLARE_DYNAMIC_CLUSTER(LevelControl::Id, levelControlAttrs, ZAP_CLUSTER_MASK(SERVER), levelControlCommands, nullptr),
     DECLARE_DYNAMIC_CLUSTER(ColorControl::Id, tempColorControlAttrs, ZAP_CLUSTER_MASK(SERVER), tempColorControlCommands, nullptr),
@@ -309,24 +320,34 @@ const int kDescriptorAttributeArraySize = 254;
         DECLARE_DYNAMIC_CLUSTER_LIST_END;
 
 
-    // DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedTemperatureClusters)
-    // DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, nullptr, nullptr, nullptr, 0),
-    // DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, nullptr, nullptr, nullptr, 0),
-    // DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, nullptr, nullptr, eventsBrigde, ArraySize(eventsBrigde)),
-    // // DECLARE_DYNAMIC_CLUSTER_CLIENT(Groups::Id, groupsAttrs, nullptr, nullptr),
-    // // DECLARE_DYNAMIC_CLUSTER_CLIENT(Scenes::Id, scenesAttrs, nullptr, nullptr),
-    // DECLARE_DYNAMIC_CLUSTER(TemperatureMeasurement::Id, temperatureAttrs, nullptr, nullptr),
-    //     DECLARE_DYNAMIC_CLUSTER_LIST_END;
+    DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedTemperatureClusters)
+    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    // DECLARE_DYNAMIC_CLUSTER_CLIENT(Groups::Id, groupsAttrs, nullptr, nullptr),
+    // DECLARE_DYNAMIC_CLUSTER_CLIENT(Scenes::Id, scenesAttrs, nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(TemperatureMeasurement::Id, temperatureAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+        DECLARE_DYNAMIC_CLUSTER_LIST_END;
 
 
-    // DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedHumidityClusters)
-    // DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, nullptr, nullptr, nullptr, 0),
-    // DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, nullptr, nullptr, nullptr, 0),
-    // DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, nullptr, nullptr, eventsBrigde, ArraySize(eventsBrigde)),
-    // // DECLARE_DYNAMIC_CLUSTER_CLIENT(Groups::Id, groupsAttrs, nullptr, nullptr),
-    // // DECLARE_DYNAMIC_CLUSTER_CLIENT(Scenes::Id, scenesAttrs, nullptr, nullptr),
-    // DECLARE_DYNAMIC_CLUSTER(RelativeHumidityMeasurement::Id, humidityAttrs, nullptr, nullptr),
-    //     DECLARE_DYNAMIC_CLUSTER_LIST_END;
+    DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedHumidityClusters)
+    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    // DECLARE_DYNAMIC_CLUSTER_CLIENT(Groups::Id, groupsAttrs, nullptr, nullptr),
+    // DECLARE_DYNAMIC_CLUSTER_CLIENT(Scenes::Id, scenesAttrs, nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(RelativeHumidityMeasurement::Id, humidityAttrs, ZAP_CLUSTER_MASK(SERVER),nullptr, nullptr),
+        DECLARE_DYNAMIC_CLUSTER_LIST_END;
+
+    DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedContactSensorClusters)
+    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(BooleanState::Id, contactAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    // DECLARE_DYNAMIC_CLUSTER_CLIENT(Groups::Id, groupsAttrs, nullptr, nullptr),
+    // DECLARE_DYNAMIC_CLUSTER_CLIENT(Scenes::Id, scenesAttrs, nullptr, nullptr),
+        DECLARE_DYNAMIC_CLUSTER_LIST_END;
+
 
     /**
      * @brief Create Switchs Endpoint
@@ -348,6 +369,17 @@ const int kDescriptorAttributeArraySize = 254;
 
     DECLARE_DYNAMIC_ENDPOINT(bridgedExtendedLightEndpoint, bridgedExtendedLightClusters);
     DataVersion gExtendedLightDataVersions[ArraySize(bridgedExtendedLightClusters)];
+
+
+    /**
+     * @brief Create Sensor Endpoint
+     * 
+     */
+    DECLARE_DYNAMIC_ENDPOINT(bridgedTemperatureEndpoint, bridgedTemperatureClusters);
+    DataVersion gTemperatureDataVersions[ArraySize(bridgedTemperatureClusters)];
+
+    DECLARE_DYNAMIC_ENDPOINT(bridgedHumidityEndpoint, bridgedHumidityClusters);
+    DataVersion gHumidityDataVersions[ArraySize(bridgedHumidityClusters)];
 
 }
 
