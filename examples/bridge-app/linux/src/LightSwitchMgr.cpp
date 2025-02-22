@@ -144,4 +144,3 @@ void LightSwitchMgr::TriggerLightSwitchColorControl(LightSwitchColorControl acti
 
     DeviceLayer::PlatformMgr().ScheduleWork(SwitchWorkerFunction, reinterpret_cast<intptr_t>(data));
 }
-
