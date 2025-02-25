@@ -138,7 +138,17 @@
     "future": "cpp",
     "list": "cpp",
     "unordered_set": "cpp",
-    "cassert": "cpp"
+    "cassert": "cpp",
+    "csignal": "cpp",
+    "codecvt": "cpp",
+    "compare": "cpp",
+    "concepts": "cpp",
+    "forward_list": "cpp",
+    "source_location": "cpp",
+    "numbers": "cpp",
+    "semaphore": "cpp",
+    "stop_token": "cpp",
+    "typeindex": "cpp"
   },
   "[ini]": {
     "editor.formatOnSave": false

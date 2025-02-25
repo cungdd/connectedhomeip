@@ -52,16 +52,20 @@
 #include <app-common/zap-generated/attributes/Accessors.h>
 #include <app-common/zap-generated/cluster-objects.h>
 #include <cassert>
-// #include <iostream>
-// #include <vector>
+#include <iostream>
+#include <vector>
 #include "LightSwitchMgr.h"
 #include <app/AttributeAccessInterface.h>
 #include <app/util/binding-table.h>
-// #include <cstring>
+#include <cstring>
+#include <csignal>
 #include "OTA.h"
 #include "DeviceMatter.h"
 #include "HandleAttributeSensor.h"
 #include "HandleAttributeLight.h"
+#include "IoTDeviceManager.h"
+#include "MQTTHandler.h"
+
 
 using namespace chip;
 using namespace chip::app;
@@ -71,6 +75,7 @@ using namespace chip::Transport;
 using namespace chip::DeviceLayer;
 using namespace chip::app::Clusters;
 using namespace MatterDevice;
+
 
 
 // REVISION DEFINITIONS:
@@ -85,7 +90,7 @@ using namespace MatterDevice;
 #define ZCL_ON_OFF_CLUSTER_REVISION (4u)
 #define ZCL_ON_OFF_CLUSTER_FEATURE_MAP (0u)
 
-#define ZCL_DIM_CLUSTER_REVISION (5u)
+
 #define ZCL_SWITCH_CLUSTER_REVISION (1u)
 #define ZCL_BINDING_CLUSTER_REVISION (1u)
 #define ZCL_COLOR_CLUSTER_REVISION (5u)
@@ -93,6 +98,10 @@ using namespace MatterDevice;
 #define ZCL_SCENES_CLUSTER_REVISION (4u)
 // ---------------------------------------------------------------------------
 
+IoTDeviceManager manager("/var/tmp/data/devices.json");
+MQTTHandler mqttClient(manager, "/var/tmp/data/mqtt_config.json");
+
+/* ------------------------------------------------------------------------ */
 
 /*
     Add Endpoints to the Bridge
@@ -153,41 +162,55 @@ Protocols::InteractionModel::Status HandleReadBridgedDeviceBasicAttribute(chip::
     using namespace BridgedDeviceBasicInformation::Attributes;
 
     ChipLogProgress(DeviceLayer, "HandleReadBridgedDeviceBasicAttribute: attrId=%d, maxReadLength=%d", attributeId, maxReadLength);
-    
-    // DeviceInformation * device = deviceRD.GetDeviceWithEndpoint(endpoint);
+
+    IoTDevice device = manager.loadDeviceByEndpoint(endpoint);
+
+    // std::cout << device.toJson().toStyledString() << std::endl;
+
+    // if(device == IoTDevice()){
+    //     return Protocols::InteractionModel::Status::Failure;
+    // }
 
     if ((attributeId == Reachable::Id))
     {
-        // *buffer = (uint8_t) device->reachable;
+        *buffer = (uint8_t) 1;
     }
     else if ((attributeId == NodeLabel::Id))
     {        
-        MutableByteSpan zclNameSpan(buffer, 50);
-        // MakeZclCharString(zclNameSpan, device->NodeLabel.c_str());      
+        MutableByteSpan zclNameSpan(buffer, 20);
+        MakeZclCharString(zclNameSpan, device.product_name.c_str());      
     }
     else if ((attributeId == VendorName::Id)) {
-        // memcpy(buffer + 1, device->VendorName.c_str(), sizeof(device->VendorName));
-        // *buffer = sizeof(device->VendorName);
+        MutableByteSpan zclNameSpan(buffer, 20);
+        MakeZclCharString(zclNameSpan, device.vendor_name.c_str()); 
     }
     else if ((attributeId == VendorID::Id)) {
-        // memcpy(buffer  +1, &(device->VendorID), sizeof(device->VendorID));
-        // *buffer = sizeof(device->VendorID);
+        memcpy(buffer , &(device.vendor_id), sizeof(device.vendor_id));
+    }
+    else if ((attributeId == ProductID::Id)) {
+        memcpy(buffer , &(device.product_id), sizeof(device.product_id));
     }
     else if ((attributeId == ProductName::Id)) {
-        // memcpy(buffer + 1, device->ProductName.c_str(), sizeof(device->ProductName));
-        // *buffer = sizeof(device->ProductName);
+        MutableByteSpan zclNameSpan(buffer, 20);
+        MakeZclCharString(zclNameSpan, device.product_name.c_str()); 
     }
     else if ((attributeId == SerialNumber::Id)) {
-        // memcpy(buffer + 1, device->SerialNumber.c_str(), sizeof(device->SerialNumber));
-        // *buffer = sizeof(device->SerialNumber);    
+        MutableByteSpan zclNameSpan(buffer, 20);
+        MakeZclCharString(zclNameSpan, device.serial_number.c_str());
+    }
+    else if((attributeId == SoftwareVersion::Id)){
+        memcpy(buffer , &(device.software_version), sizeof(device.software_version));
+    }
+    else if((attributeId == HardwareVersion::Id)){
+        memcpy(buffer , &(device.hardware_version), sizeof(device.hardware_version));
     }
     else if((attributeId == SoftwareVersionString::Id)){
-        // memcpy(buffer + 1, device->Version.c_str(), sizeof(device->Version));
-        // *buffer = sizeof(device->Version); 
+        MutableByteSpan zclNameSpan(buffer, 10);
+        MakeZclCharString(zclNameSpan, device.software_version_string.c_str());
     }
     else if((attributeId == HardwareVersionString::Id)){
-        // memcpy(buffer + 1, device->Version.c_str(), sizeof(device->Version));
-        // *buffer = sizeof(device->Version); 
+        MutableByteSpan zclNameSpan(buffer, 10);
+        MakeZclCharString(zclNameSpan, device.hardware_version_string.c_str());
     }
     else if ((attributeId == ClusterRevision::Id))
     {
@@ -196,18 +219,6 @@ Protocols::InteractionModel::Status HandleReadBridgedDeviceBasicAttribute(chip::
     else if ((attributeId == FeatureMap::Id))
     {
         *buffer = (uint32_t) ZCL_BRIDGED_DEVICE_BASIC_INFORMATION_FEATURE_MAP;
-    }
-    else if (attributeId == BridgedDeviceBasicInformation::Attributes::GeneratedCommandList::Id){
-
-    }
-    else if (attributeId == BridgedDeviceBasicInformation::Attributes::AcceptedCommandList::Id){
-
-    }
-    else if (attributeId == BridgedDeviceBasicInformation::Attributes::AttributeList::Id){
-
-    }
-    else if (attributeId == BridgedDeviceBasicInformation::Attributes::EventList::Id){
-
     }
     else
     {
@@ -231,18 +242,6 @@ Protocols::InteractionModel::Status HandleReadBindingAttribute(chip::AttributeId
         uint16_t featureMap = 0;
         memcpy(buffer, &featureMap, sizeof(featureMap));
     }
-    else if (attributeId == Binding::Attributes::GeneratedCommandList::Id){
-
-    }
-    else if (attributeId == Binding::Attributes::AcceptedCommandList::Id){
-
-    }
-    else if (attributeId == Binding::Attributes::AttributeList::Id){
-        
-    }
-    else if (attributeId == Binding::Attributes::EventList::Id){
-        
-    }
     else
     {
         return Protocols::InteractionModel::Status::Failure;
@@ -261,25 +260,10 @@ Protocols::InteractionModel::Status HandleReadIdentifyAttribute(chip::AttributeI
     }  
     else if ((attributeId == Identify::Attributes::FeatureMap::Id))
     {
-
+        *buffer = 0;
     }
     else if ((attributeId == Identify::Attributes::IdentifyTime::Id)){
         *buffer = 0;
-    }
-    else if (attributeId == Identify::Attributes::IdentifyType::Id){
-
-    }
-    else if (attributeId == Identify::Attributes::GeneratedCommandList::Id){
-
-    }
-    else if (attributeId == Identify::Attributes::AcceptedCommandList::Id){
-
-    }
-    else if (attributeId == Identify::Attributes::AttributeList::Id){
-        
-    }
-    else if (attributeId == Identify::Attributes::EventList::Id){
-        
     }
     else
     {
@@ -302,7 +286,6 @@ Protocols::InteractionModel::Status emberAfExternalAttributeReadCallback(Endpoin
 
     if ((endpointIndex < CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT))
     {
-        // Device * dev = gDevices[endpointIndex];
 
         if (clusterId == BridgedDeviceBasicInformation::Id)
         {
@@ -353,7 +336,7 @@ Protocols::InteractionModel::Status emberAfExternalAttributeWriteCallback(Endpoi
 
     Protocols::InteractionModel::Status ret = Protocols::InteractionModel::Status::Failure;
 
-    // ChipLogProgress(DeviceLayer, "emberAfExternalAttributeWriteCallback: ep=%d", endpoint);
+    ChipLogProgress(DeviceLayer, "emberAfExternalAttributeWriteCallback: ep=%d", endpoint);
 
     if (endpointIndex < CHIP_DEVICE_CONFIG_DYNAMIC_ENDPOINT_COUNT)
     {
@@ -404,9 +387,132 @@ const EmberAfDeviceType gBridgedOnOffSwitchDeviceTypes[] = {{ DEVICE_TYPE_LO_SWI
                                                              { DEVICE_TYPE_BRIDGED_NODE, DEVICE_VERSION_DEFAULT }};
 
 
+void HandleAddDeviceEndpoint(unsigned int endpoint, unsigned int type_id){
+    
+    // std::cout << "HandleAddDeviceEndpoint: " << endpoint << " " << type_id << std::endl;
+
+    if (type_id == DEVICE_TYPE_LO_ON_OFF_LIGHT)
+    {
+        /* code */
+    }
+    else if (type_id == DEVICE_TYPE_DIM_LIGHT)
+    {
+        /* code */
+    }
+    else if (type_id == DEVICE_TYPE_COLOR_TEMPERATURE_LIGHT)
+    {
+        AddDeviceEndpoint(
+            &bridgedTempLightEndpoint, 
+            Span<const EmberAfDeviceType>(gBridgedColorTemperatureLightDeviceTypes), 
+            Span<DataVersion>(gTempLightDataVersions), 
+            1, 
+            false, 
+            endpoint
+        );
+    }
+    else if (type_id == DEVICE_TYPE_LO_SWITCH_LIGHT)
+    {
+        AddDeviceEndpoint(
+            &bridgedOnOffSwitchEndpoint, 
+            Span<const EmberAfDeviceType>(gBridgedOnOffSwitchDeviceTypes),
+            Span<DataVersion>(gOnOffSwitchDataVersions), 
+            1, 
+            false, 
+            endpoint
+        );
+    }
+    else if (type_id == DEVICE_TYPE_DIMMER_SWITCH)
+    {
+        /* code */
+    }
+    else if (type_id == DEVICE_TYPE_COLOR_DIMMER_SWITCH)
+    {
+        /* code */
+    }
+    else if (type_id == DEVICE_TYPE_EXTENAL_LIGHT)
+    {
+        AddDeviceEndpoint(
+            &bridgedExtendedLightEndpoint, 
+            Span<const EmberAfDeviceType>(gBridgedExtendedLightDeviceTypes), 
+            Span<DataVersion>(gExtendedLightDataVersions), 
+            1, 
+            false, 
+            endpoint
+        );
+        /* code */
+    }
+    else if (type_id == DEVICE_TYPE_TEMPERATURE_SENSOR)
+    {
+        AddDeviceEndpoint(
+            &bridgedTemperatureEndpoint, 
+            Span<const EmberAfDeviceType>(gBridgedTemperatureSensorDeviceTypes),
+            Span<DataVersion>(gTemperatureDataVersions), 
+            1, 
+            false, 
+            endpoint
+        );
+    }
+    else if (type_id == DEVICE_TYPE_HUMIDITY_SENSOR)
+    {
+        /* code */
+        AddDeviceEndpoint(
+            &bridgedHumidityEndpoint, 
+            Span<const EmberAfDeviceType>(gBridgedHumiditySensorDeviceTypes),
+            Span<DataVersion>(gHumidityDataVersions), 
+            1, 
+            false, 
+            endpoint
+        );
+    }
+    else if (type_id == DEVICE_TYPE_CONTACT_SENSOR)
+    {
+        /* code */
+        AddDeviceEndpoint(
+            &bridgedContactEndpoint, 
+            Span<const EmberAfDeviceType>(gBridgedContactDeviceTypes),
+            Span<DataVersion>(gContactDataVersions), 
+            1, 
+            false, 
+            endpoint
+        );
+    }
+    else if (type_id == DEVICE_TYPE_LIGHT_SENSOR)
+    {
+        AddDeviceEndpoint(
+            &bridgedLightSensorEndpoint, 
+            Span<const EmberAfDeviceType>(gBridgedLightSensorDeviceTypes),
+            Span<DataVersion>(gLightSensorDataVersions), 
+            1, 
+            false, 
+            endpoint
+        );
+    }
+}
+
+void signalHandler(int signum)
+{
+    // std::cout << "[Main] Received signal: " << signum << std::endl;
+    std::string deviceID = manager.getNewId();
+    manager.setNewId("");
+    if (deviceID != "")
+    {
+        IoTDevice device = manager.loadDeviceById(deviceID);
+        std::cout << device.toJson().toStyledString() << std::endl;
+        std::cout << device.endpoint << " " << device.type_id << std::endl;
+        HandleAddDeviceEndpoint(device.endpoint, device.type_id);
+    }
+}
+
 int main(int argc, char * argv[])
 {
-    
+    manager.printAllDevices();
+    mqttClient.loop_start();
+    HandleSensorInit(manager);
+    HandleLightInit(manager, mqttClient);
+    signal(SIGUSR1, signalHandler);
+
+    /*--------------------------------------------------------------------- */
+
     if (ChipLinuxAppInit(argc, argv) != 0)
     {
         return -1;
@@ -432,71 +538,14 @@ int main(int argc, char * argv[])
         ChipLogProgress(DeviceLayer, "LightSwitchMgr Init failed!");
     }
 
-    emberAfEndpointEnableDisable(emberAfEndpointFromIndex(static_cast<uint16_t>(emberAfFixedEndpointCount() - 1)), true);
+    emberAfEndpointEnableDisable(emberAfEndpointFromIndex(static_cast<uint16_t>(emberAfFixedEndpointCount() - 1)), false);
 
-    AddDeviceEndpoint(
-        &bridgedTempLightEndpoint, 
-        Span<const EmberAfDeviceType>(gBridgedColorTemperatureLightDeviceTypes), 
-        Span<DataVersion>(gTempLightDataVersions), 
-        1, 
-        false, 
-        3
-    );
+    Json::Value devices = manager.getDevices();
 
-    AddDeviceEndpoint(
-        &bridgedExtendedLightEndpoint, 
-        Span<const EmberAfDeviceType>(gBridgedExtendedLightDeviceTypes), 
-        Span<DataVersion>(gExtendedLightDataVersions), 
-        1, 
-        false, 
-        4
-    );
-
-    AddDeviceEndpoint(
-        &bridgedOnOffSwitchEndpoint, 
-        Span<const EmberAfDeviceType>(gBridgedOnOffSwitchDeviceTypes),
-        Span<DataVersion>(gOnOffSwitchDataVersions), 
-        1, 
-        false, 
-        5
-    );
-
-    AddDeviceEndpoint(
-        &bridgedContactEndpoint, 
-        Span<const EmberAfDeviceType>(gBridgedContactDeviceTypes),
-        Span<DataVersion>(gContactDataVersions), 
-        1, 
-        false, 
-        6
-    );
-
-    AddDeviceEndpoint(
-        &bridgedLightSensorEndpoint, 
-        Span<const EmberAfDeviceType>(gBridgedLightSensorDeviceTypes),
-        Span<DataVersion>(gLightSensorDataVersions), 
-        1, 
-        false, 
-        7
-    );
-
-    AddDeviceEndpoint(
-        &bridgedTemperatureEndpoint, 
-        Span<const EmberAfDeviceType>(gBridgedTemperatureSensorDeviceTypes),
-        Span<DataVersion>(gTemperatureDataVersions), 
-        1, 
-        false, 
-        8
-    );
-
-    AddDeviceEndpoint(
-        &bridgedHumidityEndpoint, 
-        Span<const EmberAfDeviceType>(gBridgedHumiditySensorDeviceTypes),
-        Span<DataVersion>(gHumidityDataVersions), 
-        1, 
-        false, 
-        9
-    );
-
+    for (const auto &device : devices) {
+        HandleAddDeviceEndpoint(device["endpoint"].asUInt(), device["type_id"].asUInt());
+    }
+  
     sEthernetNetworkCommissioningInstance.Init();
     InitOTARequestor();
     chip::DeviceLayer::PlatformMgr().RunEventLoop();

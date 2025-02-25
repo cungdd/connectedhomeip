@@ -20,6 +20,7 @@
 
 
 
+
 // std::vector<EndpointListInfo> GetEndpointListInfo(chip::EndpointId parentId);
 
 // std::vector<Action *> GetActionListInfo(chip::EndpointId parentId);

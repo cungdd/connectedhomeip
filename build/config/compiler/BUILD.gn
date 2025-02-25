@@ -402,7 +402,7 @@ config("runtime_default") {
       "dl",
       "pthread",
       "rt",
-      "mosquitto",
+      "mosquittopp",
       "jsoncpp"
     ]
   }
