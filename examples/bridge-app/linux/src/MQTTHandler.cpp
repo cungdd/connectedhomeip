@@ -14,6 +14,8 @@ MQTTHandler::MQTTHandler(IoTDeviceManager &manager, const std::string &configFil
     // Đặt ID cho client MQTT
     this->reinitialise(client_id.c_str(), true);
 
+    // Đặt username và password
+    username_pw_set(username.c_str(), password.c_str());
     // Kết nối MQTT
     connect(broker.c_str(), port, keepalive);
 }
@@ -34,7 +36,8 @@ void MQTTHandler::loadConfigFromFile(const std::string &filename) {
     client_id = config["client_id"].asString();
     topic_subscribe = config["topic_subscribe"].asString();
     topic_response = config["topic_response"].asString();
-
+    username = config["username"].asString();
+    password = config["password"].asString();
     std::cout << "Loaded MQTT config: " << broker << ":" << port << std::endl;
 
 }
@@ -57,7 +60,7 @@ void MQTTHandler::reconnect() {
 void MQTTHandler::on_connect(int rc) {
     if (rc == 0) {
         std::cout << "Connected to MQTT broker!" << std::endl;
-        subscribe(NULL, "iot/device");
+        subscribe(NULL, topic_subscribe.c_str());
     } else {
         std::cerr << "Failed to connect, return code: " << rc << std::endl;
     }
@@ -73,12 +76,20 @@ void MQTTHandler::sendResponse(const std::string &cmd, const std::string &rqi, i
     Json::StreamWriterBuilder writer;
     std::string responseStr = Json::writeString(writer, response);
 
-    publish(NULL, "iot/response", (unsigned int)responseStr.length(), responseStr.c_str());
+    publish(NULL, topic_response.c_str(), (unsigned int)responseStr.length(), responseStr.c_str());
  
 }
 
 void MQTTHandler::handleAddDevice(const Json::Value &root) {
     IoTDevice newDevice = IoTDevice::fromJson(root["data"]);
+    deviceManager.addDevice(newDevice);
+    sendResponse(root["cmd"].asString(), root["rqi"].asString(), 0);
+}
+
+void MQTTHandler::handleSyncDevice(const Json::Value &root) {
+    IoTDevice newDevice = IoTDevice::fromJson(root["data"]);
+    sendResponse(root["cmd"].asString(), root["rqi"].asString(), 0);
+    if(deviceManager.getDevices().isMember(newDevice.id)) return;
     deviceManager.addDevice(newDevice);
     sendResponse(root["cmd"].asString(), root["rqi"].asString(), 0);
 }
@@ -138,7 +149,7 @@ void MQTTHandler::sendControl(const std::string& deviceId, uint8_t *onoff, uint8
     Json::StreamWriterBuilder writer;
     std::string controlStr = Json::writeString(writer, root);
 
-    publish(NULL, "iot/device", (unsigned int)controlStr.length(), controlStr.c_str());
+    publish(NULL, topic_response.c_str(), (unsigned int)controlStr.length(), controlStr.c_str());
 }
 
 void MQTTHandler::on_message(const struct mosquitto_message *message) {
@@ -157,6 +168,7 @@ void MQTTHandler::on_message(const struct mosquitto_message *message) {
         else if (cmd == "touch_switch_ctrl") handleTouchSwitchControl(root);
         else if (cmd == "sensor_value") handleSensorValue(root);
         else if (cmd == "reset") deviceManager.clearDevices();
+        else if (cmd == "sync_device") handleSyncDevice(root);
     } else {
         std::cerr << "Error parsing MQTT message: " << errs << std::endl;
     }
