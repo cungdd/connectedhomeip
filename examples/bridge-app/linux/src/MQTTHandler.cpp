@@ -82,17 +82,20 @@ void MQTTHandler::sendResponse(const std::string &cmd, const std::string &rqi, i
 
 void MQTTHandler::handleAddDevice(const Json::Value &root) {
     IoTDevice newDevice = IoTDevice::fromJson(root["data"]);
-    deviceManager.addDevice(newDevice);
-    sendResponse(root["cmd"].asString(), root["rqi"].asString(), 0);
-}
-
-void MQTTHandler::handleSyncDevice(const Json::Value &root) {
-    IoTDevice newDevice = IoTDevice::fromJson(root["data"]);
     sendResponse(root["cmd"].asString(), root["rqi"].asString(), 0);
     if(deviceManager.getDevices().isMember(newDevice.id)) return;
+    // IoTDevice newDevice = IoTDevice::fromJson(root["data"]);
     deviceManager.addDevice(newDevice);
-    sendResponse(root["cmd"].asString(), root["rqi"].asString(), 0);
+    // sendResponse(root["cmd"].asString(), root["rqi"].asString(), 0);
 }
+
+// void MQTTHandler::handleSyncDevice(const Json::Value &root) {
+//     IoTDevice newDevice = IoTDevice::fromJson(root["data"]);
+//     sendResponse(root["cmd"].asString(), root["rqi"].asString(), 0);
+//     if(deviceManager.getDevices().isMember(newDevice.id)) return;
+//     deviceManager.addDevice(newDevice);
+//     sendResponse(root["cmd"].asString(), root["rqi"].asString(), 0);
+// }
 
 void MQTTHandler::handleDeleteDevice(const Json::Value &root) {
     bool success = deviceManager.removeDevice(root["data"]["id"].asString());
@@ -160,6 +163,8 @@ void MQTTHandler::on_message(const struct mosquitto_message *message) {
     std::istringstream s(payload);
     std::string errs;
 
+    std::cout << "Received message: " << payload << std::endl;
+
     if (Json::parseFromStream(reader, s, &root, &errs)) {
         std::string cmd = root["cmd"].asString();
         if (cmd == "add_device") handleAddDevice(root);
@@ -168,7 +173,6 @@ void MQTTHandler::on_message(const struct mosquitto_message *message) {
         else if (cmd == "touch_switch_ctrl") handleTouchSwitchControl(root);
         else if (cmd == "sensor_value") handleSensorValue(root);
         else if (cmd == "reset") deviceManager.clearDevices();
-        else if (cmd == "sync_device") handleSyncDevice(root);
     } else {
         std::cerr << "Error parsing MQTT message: " << errs << std::endl;
     }

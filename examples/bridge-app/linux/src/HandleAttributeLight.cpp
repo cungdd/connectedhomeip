@@ -16,7 +16,11 @@ Protocols::InteractionModel::Status HandleReadSwitchAttribute(chip::AttributeId 
     // ChipLogProgress(DeviceLayer, "HandleReadOnOffAttribute: attrId=%d, maxReadLength=%d", attributeId, maxReadLength);
     
     if (attributeId == Switch::Attributes::CurrentPosition::Id && maxReadLength == 1){
-        *buffer = (uint8_t)deviceManager->getDeviceStateByEndpoint(endpoint)["onoff"].asUInt();
+        if(deviceManager->getDeviceStateByEndpoint(endpoint)["onoff"].isNull()){
+            *buffer = 0;
+        }
+        else
+            *buffer = (uint8_t)deviceManager->getDeviceStateByEndpoint(endpoint)["onoff"].asUInt();
     }
     else if(attributeId == Switch::Attributes::NumberOfPositions::Id && maxReadLength == 1){
         *buffer = 2;
@@ -38,8 +42,12 @@ Protocols::InteractionModel::Status HandleReadOnOffAttribute(chip::AttributeId a
 
     if ( attributeId == OnOff::Attributes::OnOff::Id && maxReadLength == 1)
     {
-        std::cout << deviceManager->getDeviceStateByEndpoint(endpoint) << std::endl;
-        *buffer = (uint8_t)deviceManager->getDeviceStateByEndpoint(endpoint)["onoff"].asInt();
+        // std::cout << deviceManager->getDeviceStateByEndpoint(endpoint) << std::endl;
+        if(deviceManager->getDeviceStateByEndpoint(endpoint)["onoff"].isNull()){
+            *buffer = 0;
+        }
+        else
+            *buffer = (uint8_t)deviceManager->getDeviceStateByEndpoint(endpoint)["onoff"].asInt();
         std::cout << "Read onoff: " << (int)*buffer << std::endl;
     }
     else if (attributeId == OnOff::Attributes::ClusterRevision::Id)

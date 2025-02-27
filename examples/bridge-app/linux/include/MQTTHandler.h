@@ -29,7 +29,7 @@ public:
     void on_message(const struct mosquitto_message *message) override;
     void reconnect();
     void handleAddDevice(const Json::Value &root);
-    void handleSyncDevice(const Json::Value &root);
+    // void handleSyncDevice(const Json::Value &root);
     void handleDeleteDevice(const Json::Value &root);
     void handleLightControl(const Json::Value &root);
     void handleTouchSwitchControl(const Json::Value &root);
