@@ -362,74 +362,74 @@ const int kDescriptorAttributeArraySize = 254;
     /*----------------Color Temperature Light-------------------------*/
 
     DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedTempLightClusters)
-    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), identifyCommands, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, eventsBrigde),
-    DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, ZAP_CLUSTER_MASK(SERVER), groupsCommands, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(ScenesManagement::Id, scenesAttrs, ZAP_CLUSTER_MASK(SERVER), scenesCommands, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(OnOff::Id, onOffAttrs, ZAP_CLUSTER_MASK(SERVER), onOffCommands, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(LevelControl::Id, levelControlAttrs, ZAP_CLUSTER_MASK(SERVER), levelControlCommands, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(ColorControl::Id, tempColorControlAttrs, ZAP_CLUSTER_MASK(SERVER), tempColorControlCommands, nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), identifyCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, ZAP_CLUSTER_MASK(SERVER), groupsCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(ScenesManagement::Id, scenesAttrs, ZAP_CLUSTER_MASK(SERVER), scenesCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(OnOff::Id, onOffAttrs, ZAP_CLUSTER_MASK(SERVER), onOffCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(LevelControl::Id, levelControlAttrs, ZAP_CLUSTER_MASK(SERVER), levelControlCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(ColorControl::Id, tempColorControlAttrs, ZAP_CLUSTER_MASK(SERVER), tempColorControlCommands, nullptr),
         DECLARE_DYNAMIC_CLUSTER_LIST_END;
 
 
     /*---------------Extended Temperature Light-------------------------*/
 
     DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedExtendedLightClusters)
-    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), identifyCommands, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, eventsBrigde),
-    DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, ZAP_CLUSTER_MASK(SERVER), groupsCommands, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(ScenesManagement::Id, scenesAttrs, ZAP_CLUSTER_MASK(SERVER), scenesCommands, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(OnOff::Id, onOffAttrs, ZAP_CLUSTER_MASK(SERVER), onOffCommands, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(LevelControl::Id, levelControlAttrs, ZAP_CLUSTER_MASK(SERVER), levelControlCommands, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(ColorControl::Id, extendedColorControlAttrs, ZAP_CLUSTER_MASK(SERVER), extendedColorControlCommands, nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), identifyCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, ZAP_CLUSTER_MASK(SERVER), groupsCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(ScenesManagement::Id, scenesAttrs, ZAP_CLUSTER_MASK(SERVER), scenesCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(OnOff::Id, onOffAttrs, ZAP_CLUSTER_MASK(SERVER), onOffCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(LevelControl::Id, levelControlAttrs, ZAP_CLUSTER_MASK(SERVER), levelControlCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(ColorControl::Id, extendedColorControlAttrs, ZAP_CLUSTER_MASK(SERVER), extendedColorControlCommands, nullptr),
         DECLARE_DYNAMIC_CLUSTER_LIST_END;
 
     /*--------------------On/Off Light Switch-------------------------*/
     DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedOnOffSwitchClusters)
-    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), identifyCommands, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(CLIENT), nullptr, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, eventsBrigde),
-    DECLARE_DYNAMIC_CLUSTER(OnOff::Id, onOffAttrs, ZAP_CLUSTER_MASK(CLIENT), nullptr, onOffCommands, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(Binding::Id, bindingAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), identifyCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(CLIENT), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(OnOff::Id, onOffAttrs, ZAP_CLUSTER_MASK(CLIENT), nullptr, onOffCommands),
+    DECLARE_DYNAMIC_CLUSTER(Binding::Id, bindingAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
         DECLARE_DYNAMIC_CLUSTER_LIST_END;
 
     /*----------------------Temperature Sensor-------------------------*/
     DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedTemperatureClusters)
-    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), identifyCommands, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, eventsBrigde),
-    DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, ZAP_CLUSTER_MASK(CLIENT), nullptr, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(TemperatureMeasurement::Id, temperatureAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), identifyCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, ZAP_CLUSTER_MASK(CLIENT), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(TemperatureMeasurement::Id, temperatureAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
         DECLARE_DYNAMIC_CLUSTER_LIST_END;
 
     /*----------------------Humidity Sensor-------------------------*/
     DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedHumidityClusters)
-    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), identifyCommands, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, eventsBrigde),
-    DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, ZAP_CLUSTER_MASK(CLIENT), nullptr, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(RelativeHumidityMeasurement::Id, humidityAttrs, ZAP_CLUSTER_MASK(SERVER),nullptr, nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), identifyCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, ZAP_CLUSTER_MASK(CLIENT), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(RelativeHumidityMeasurement::Id, humidityAttrs, ZAP_CLUSTER_MASK(SERVER),nullptr, nullptr),
         DECLARE_DYNAMIC_CLUSTER_LIST_END;
 
 
     /*----------------------Contact Sensor-------------------------*/
     DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedContactSensorClusters)
-    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), identifyCommands, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(BooleanState::Id, contactAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, eventsContactSensor),
-    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, eventsBrigde),
+    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), identifyCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(BooleanState::Id, contactAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
         DECLARE_DYNAMIC_CLUSTER_LIST_END;
     
     /*----------------------Light Sensor-------------------------*/
     DECLARE_DYNAMIC_CLUSTER_LIST_BEGIN(bridgedLightSensorClusters)
-    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), identifyCommands, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, ZAP_CLUSTER_MASK(CLIENT), nullptr, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(IlluminanceMeasurement::Id, lightAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, nullptr),
-    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr, eventsBrigde),
+    DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), identifyCommands, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, ZAP_CLUSTER_MASK(CLIENT), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(IlluminanceMeasurement::Id, lightAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
         DECLARE_DYNAMIC_CLUSTER_LIST_END;
 
     /**
