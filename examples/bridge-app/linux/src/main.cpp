@@ -65,6 +65,8 @@
 #include "HandleAttributeLight.h"
 #include "IoTDeviceManager.h"
 #include "MQTTHandler.h"
+#include "BindingHandler.h"
+
 
 
 using namespace chip;
@@ -232,21 +234,38 @@ Protocols::InteractionModel::Status HandleReadBridgedDeviceBasicAttribute(chip::
 Protocols::InteractionModel::Status HandleReadBindingAttribute(chip::AttributeId attributeId, uint8_t * buffer, uint16_t maxReadLength)
 {
 
-    if ((attributeId == Binding::Attributes::ClusterRevision::Id) && (maxReadLength == 2))
-    {
-        *buffer = (uint16_t)ZCL_BINDING_CLUSTER_REVISION;
-      
-    }  
-    else if ((attributeId == Binding::Attributes::FeatureMap::Id))
-    {
+    ChipLogProgress(DeviceLayer, "HandleReadBindingAttribute: attrId=%d, maxReadLength=%d", attributeId, maxReadLength);
+
+    if(attributeId==Binding::Attributes::Binding::Id){
+        ChipLogProgress(DeviceLayer, "-------------Binding::Attributes::Binding::Id-------------");
+        return Protocols::InteractionModel::Status::Success;
+        
+    }
+    else if(attributeId==Binding::Attributes::ClusterRevision::Id){
+        *buffer = (uint16_t) ZCL_BINDING_CLUSTER_REVISION;
+        return Protocols::InteractionModel::Status::Success;
+    }
+    else if(attributeId==Binding::Attributes::FeatureMap::Id){
         uint16_t featureMap = 0;
         memcpy(buffer, &featureMap, sizeof(featureMap));
+        return Protocols::InteractionModel::Status::Success;
+    }
+    else if(attributeId==Binding::Attributes::GeneratedCommandList::Id){
+        return Protocols::InteractionModel::Status::Success;
+    }
+    else if(attributeId==Binding::Attributes::AcceptedCommandList::Id){
+        return Protocols::InteractionModel::Status::Success;
+    }
+    else if(attributeId==Binding::Attributes::AttributeList::Id){
+        return Protocols::InteractionModel::Status::Success;
+    }
+    else if(attributeId==Binding::Attributes::EventList::Id){
+        return Protocols::InteractionModel::Status::Success;
     }
     else
     {
         return Protocols::InteractionModel::Status::Failure;
     }
-
     return Protocols::InteractionModel::Status::Success;
 }
 
@@ -298,6 +317,7 @@ Protocols::InteractionModel::Status emberAfExternalAttributeReadCallback(Endpoin
         else if (clusterId == Binding::Id)
         {
             ret  = HandleReadBindingAttribute(attributeMetadata->attributeId, buffer, maxReadLength);
+            ChipLogProgress(DeviceLayer, "-------------Binding::Attributes::Binding::Id-------------");
         }
         else if(clusterId == LevelControl::Id){
             ret  = HandleReadLevelControlAttribute(attributeMetadata->attributeId, buffer, maxReadLength, endpoint);
@@ -531,7 +551,7 @@ int main(int argc, char * argv[])
     // Initialize device attestation config
     SetDeviceAttestationCredentialsProvider(Examples::GetExampleDACProvider());
     CHIP_ERROR err = LightSwitchMgr::GetInstance().Init(kLightSwitchEndpoint, kGenericSwitchEndpoint);
-
+    
 
     if (err != CHIP_NO_ERROR)
     {
@@ -539,14 +559,22 @@ int main(int argc, char * argv[])
     }
 
     emberAfEndpointEnableDisable(emberAfEndpointFromIndex(static_cast<uint16_t>(emberAfFixedEndpointCount() - 1)), false);
-
+    CHIP_ERROR error = InitBindingHandler();
+    if (error != CHIP_NO_ERROR)
+    {
+        ChipLogProgress(NotSpecified, "InitBindingHandler() failed!");
+    }
     Json::Value devices = manager.getDevices();
 
     for (const auto &device : devices) {
         HandleAddDeviceEndpoint(device["endpoint"].asUInt(), device["type_id"].asUInt());
     }
+
+    EventNumber eventNumber;
+    Clusters::BridgedDeviceBasicInformation::Events::StartUp::Type event;
+    LogEvent(event, 0, eventNumber);
   
-    sEthernetNetworkCommissioningInstance.Init();
+    // sEthernetNetworkCommissioningInstance.Init();
     InitOTARequestor();
     chip::DeviceLayer::PlatformMgr().RunEventLoop();
 

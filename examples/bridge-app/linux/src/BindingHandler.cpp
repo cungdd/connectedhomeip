@@ -145,7 +145,7 @@ void ProcessOnOffGroupBindingCommand(CommandId commandId, const EmberBindingTabl
 void LightSwitchChangedHandler(const EmberBindingTableEntry & binding, OperationalDeviceProxy * peer_device, void * context)
 {
 
-    // ChipLogError(NotSpecified, "SwitchWorkerFunction - ----------------");
+    ChipLogError(NotSpecified, "SwitchWorkerFunction - ----------------");
     VerifyOrReturn(context != nullptr, ChipLogError(NotSpecified, "OnDeviceConnectedFn: context is null"));
     BindingCommandData * data = static_cast<BindingCommandData *>(context);
 

@@ -22,8 +22,8 @@ const int kDescriptorAttributeArraySize = 254;
     // static chip::DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
     constexpr chip::EndpointId kLightSwitchEndpoint   = 2;
     constexpr chip::EndpointId kGenericSwitchEndpoint = 2;
-    DeviceLayer::NetworkCommissioning::LinuxEthernetDriver sEthernetDriver;
-    Clusters::NetworkCommissioning::Instance sEthernetNetworkCommissioningInstance(0, &sEthernetDriver);
+    // DeviceLayer::NetworkCommissioning::LinuxEthernetDriver sEthernetDriver;
+    // Clusters::NetworkCommissioning::Instance sEthernetNetworkCommissioningInstance(0, &sEthernetDriver);
 
     // ENDPOINT DEFINITIONS:
     // =================================================================================
@@ -63,7 +63,7 @@ const int kDescriptorAttributeArraySize = 254;
 
     #define DEVICE_TYPE_LIGHT_SENSOR                    0x0106
 
-    #define DEVICE_VERSION_DEFAULT 1
+    #define DEVICE_VERSION_DEFAULT                      1
 
 
     /*-----------------------Contact Attribute---------------------------*/
@@ -276,8 +276,9 @@ const int kDescriptorAttributeArraySize = 254;
     DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(bindingAttrs)
     DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::Binding::Id, ARRAY, 256, 1),
     DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
-    // DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::AttributeList::Id, ARRAY, kDescriptorAttributeArraySize, 0),          /* attribute list */
-    // DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::AttributeList::Id, ARRAY, kDescriptorAttributeArraySize, 0),          /* attribute list */
+    DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+    DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::ClusterRevision::Id, INT16U, 2, 0),
     // DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::EventList::Id, ARRAY, 4, 0),
         DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
 

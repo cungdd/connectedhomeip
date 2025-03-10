@@ -40,6 +40,7 @@ if (sysroot_platform_config != "") {
 }
 
 _defaults = {
+  #sysroot = "/home/chucuong/openwrt/staging_dir/target-aarch64_cortex-a72_musl"
   sysroot = ""
   runtime_library_cflags = []
   runtime_library_ldflags = []

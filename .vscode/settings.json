@@ -148,7 +148,8 @@
     "numbers": "cpp",
     "semaphore": "cpp",
     "stop_token": "cpp",
-    "typeindex": "cpp"
+    "typeindex": "cpp",
+    "filesystem": "cpp"
   },
   "[ini]": {
     "editor.formatOnSave": false

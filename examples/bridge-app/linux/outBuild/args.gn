@@ -1,2 +1,0 @@
-host_toolchain = "custom"
-sysroot = "~/openwrt/staging_dir/target-aarch64_cortex-a72_musl/usr"

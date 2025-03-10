@@ -193,6 +193,15 @@ CHIP_ERROR EncodeFromSpan(ByteSpan data, bool isNullable, AttributeValueEncoder 
 CHIP_ERROR EncodeEmberValue(ByteSpan data, const EmberAfAttributeMetadata * metadata, AttributeValueEncoder & encoder)
 {
     VerifyOrReturnError(metadata != nullptr, CHIP_ERROR_INVALID_ARGUMENT);
+    
+
+    ChipLogDetail(DataManagement, "Encoding attribute type 0x%x", static_cast<int>(metadata->attributeType));
+    ChipLogDetail(DataManagement, "Attribute size: %d", metadata->size);
+    ChipLogDetail(DataManagement, "Attribute mask: 0x%x", metadata->mask);
+    ChipLogDetail(DataManagement, "Attribute isNullable: %d", metadata->IsNullable());
+    ChipLogDetail(DataManagement, "Attribute isReadOnly: %d", metadata->IsReadOnly());
+    ChipLogDetail(DataManagement, "Attribute isSigned: %d", metadata->IsSignedIntegerAttribute());
+    ChipLogDetail(DataManagement, "Attribute hasMinMax: %d", metadata->HasMinMax());
 
     const bool isNullable = metadata->IsNullable();
 

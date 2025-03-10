@@ -221,6 +221,13 @@ CHIP_ERROR DecodeValueIntoEmberBuffer(AttributeValueDecoder & decoder, const Emb
 {
     VerifyOrReturnError(metadata != nullptr, CHIP_ERROR_INVALID_ARGUMENT);
 
+    ChipLogDetail(DataManagement, "Encoding attribute type 0x%x", static_cast<int>(metadata->attributeType));
+    ChipLogDetail(DataManagement, "Attribute size: %d", metadata->size);
+    ChipLogDetail(DataManagement, "Attribute mask: 0x%x", metadata->mask);
+    ChipLogDetail(DataManagement, "Attribute isNullable: %d", metadata->IsNullable());
+    ChipLogDetail(DataManagement, "Attribute isReadOnly: %d", metadata->IsReadOnly());
+    ChipLogDetail(DataManagement, "Attribute isSigned: %d", metadata->IsSignedIntegerAttribute());
+    ChipLogDetail(DataManagement, "Attribute hasMinMax: %d", metadata->HasMinMax());
     const bool isNullable = metadata->IsNullable();
 
     switch (AttributeBaseType(metadata->attributeType))
