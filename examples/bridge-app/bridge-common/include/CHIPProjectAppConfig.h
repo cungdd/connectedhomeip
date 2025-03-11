@@ -36,7 +36,7 @@
 // #define CHIP_DEVICE_CONFIG_TEST_SERIAL_NUMBER "123456789"
 // #define CHIP_DEVICE_CONFIG_DEVICE_TYPE 22
 
-#define CHIP_DEVICE_CONFIG_ENABLE_WIFI 1
+#define CHIP_DEVICE_CONFIG_ENABLE_WIFI 0
 
 // #define LOG_HEAD "RANG DONG DEV - "
 // include the CHIPProjectConfig from config/standalone
