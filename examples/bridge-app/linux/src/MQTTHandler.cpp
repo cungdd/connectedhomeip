@@ -3,6 +3,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include "LightSwitchMgr.h"
 
 
 MQTTHandler::MQTTHandler(IoTDeviceManager &manager, const std::string &configFile) 
@@ -116,7 +117,16 @@ void MQTTHandler::handleTouchSwitchControl(const Json::Value &root) {
     Json::Value state;
     state["onoff"] = root["data"]["onoff"];
     bool success = deviceManager.updateDeviceStateById(root["data"]["id"].asString(), state);
+
     sendResponse(root["cmd"].asString(), root["rqi"].asString(), success ? 0 : 1);
+
+    IoTDevice device = deviceManager.loadDeviceById(root["data"]["id"].asString());
+    if (state["onoff"] == 1) {
+        LightSwitchMgr::GetInstance().TriggerLightSwitchAction(LightSwitchMgr::LightSwitchAction::On, false, (chip::EndpointId)device.endpoint, 6);
+    }
+    else{
+        LightSwitchMgr::GetInstance().TriggerLightSwitchAction(LightSwitchMgr::LightSwitchAction::Off, false, (chip::EndpointId)device.endpoint, 6);
+    }
 
 }
 

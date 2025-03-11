@@ -47,7 +47,6 @@
 ------------------------------- Dev-----------------------------
 ----------------------------------------------------------------*/
 
-
 #include <app/clusters/switch-server/switch-server.h>
 #include <app-common/zap-generated/attributes/Accessors.h>
 #include <app-common/zap-generated/cluster-objects.h>
