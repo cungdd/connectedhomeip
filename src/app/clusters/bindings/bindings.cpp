@@ -201,6 +201,7 @@ void BindingTableAccess::OnListWriteEnd(const app::ConcreteAttributePath & aPath
 
 CHIP_ERROR BindingTableAccess::WriteBindingTable(const ConcreteDataAttributePath & path, AttributeValueDecoder & decoder)
 {
+    // ChipLogDetail(DataManagement, "--------------------------------");
     mAccessingFabricIndex = decoder.AccessingFabricIndex();
     if (!path.IsListOperation() || path.mListOp == ConcreteDataAttributePath::ListOperation::ReplaceAll)
     {

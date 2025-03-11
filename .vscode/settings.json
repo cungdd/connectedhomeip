@@ -149,7 +149,11 @@
     "semaphore": "cpp",
     "stop_token": "cpp",
     "typeindex": "cpp",
-    "filesystem": "cpp"
+    "filesystem": "cpp",
+    "__verbose_abort": "cpp",
+    "execution": "cpp",
+    "print": "cpp",
+    "span": "cpp"
   },
   "[ini]": {
     "editor.formatOnSave": false

@@ -73,12 +73,10 @@ std::optional<CHIP_ERROR> TryWriteViaAccessInterface(const ConcreteDataAttribute
     }
 
     CHIP_ERROR err = aai->Write(path, decoder);
-
     if (err != CHIP_NO_ERROR)
     {
         return std::make_optional(err);
     }
-
     // If the decoder tried to decode, then a value should have been read for processing.
     //   - if decoding was done, assume DONE (i.e. final CHIP_NO_ERROR)
     //   -  otherwise, if no decoding done, return that processing must continue via nullopt
@@ -118,12 +116,10 @@ template <typename T, class ENCODING>
 CHIP_ERROR DecodeStringLikeIntoEmberBuffer(AttributeValueDecoder decoder, bool isNullable, MutableByteSpan & out)
 {
     T workingValue;
-
     if (isNullable)
     {
         typename DataModel::Nullable<T> nullableWorkingValue;
         ReturnErrorOnFailure(decoder.Decode(nullableWorkingValue));
-
         if (nullableWorkingValue.IsNull())
         {
             VerifyOrReturnError(out.size() >= sizeof(typename ENCODING::LengthType), CHIP_ERROR_BUFFER_TOO_SMALL);
@@ -221,13 +217,6 @@ CHIP_ERROR DecodeValueIntoEmberBuffer(AttributeValueDecoder & decoder, const Emb
 {
     VerifyOrReturnError(metadata != nullptr, CHIP_ERROR_INVALID_ARGUMENT);
 
-    ChipLogDetail(DataManagement, "Encoding attribute type 0x%x", static_cast<int>(metadata->attributeType));
-    ChipLogDetail(DataManagement, "Attribute size: %d", metadata->size);
-    ChipLogDetail(DataManagement, "Attribute mask: 0x%x", metadata->mask);
-    ChipLogDetail(DataManagement, "Attribute isNullable: %d", metadata->IsNullable());
-    ChipLogDetail(DataManagement, "Attribute isReadOnly: %d", metadata->IsReadOnly());
-    ChipLogDetail(DataManagement, "Attribute isSigned: %d", metadata->IsSignedIntegerAttribute());
-    ChipLogDetail(DataManagement, "Attribute hasMinMax: %d", metadata->HasMinMax());
     const bool isNullable = metadata->IsNullable();
 
     switch (AttributeBaseType(metadata->attributeType))
@@ -292,6 +281,8 @@ DataModel::ActionReturnStatus CodegenDataModelProvider::WriteAttribute(const Dat
     ChipLogDetail(DataManagement, "Writing attribute: Cluster=" ChipLogFormatMEI " Endpoint=0x%x AttributeId=" ChipLogFormatMEI,
                   ChipLogValueMEI(request.path.mClusterId), request.path.mEndpointId, ChipLogValueMEI(request.path.mAttributeId));
 
+    
+
     // TODO: ordering is to check writability/existence BEFORE ACL and this seems wrong, however
     //       existing unit tests (TC_AcessChecker.py) validate that we get UnsupportedWrite instead of UnsupportedAccess
     //
@@ -313,7 +304,8 @@ DataModel::ActionReturnStatus CodegenDataModelProvider::WriteAttribute(const Dat
 
     const EmberAfAttributeMetadata ** attributeMetadata = std::get_if<const EmberAfAttributeMetadata *>(&metadata);
 
-    // All the global attributes that we do not have metadata for are
+
+      // All the global attributes that we do not have metadata for are
     // read-only. Specifically only the following list-based attributes match the
     // "global attributes not in metadata" (see GlobalAttributes.h :: GlobalAttributesNotInMetadata):
     //   - AttributeList
@@ -354,7 +346,7 @@ DataModel::ActionReturnStatus CodegenDataModelProvider::WriteAttribute(const Dat
 
         checkAcl = (attributePathA != attributePathB);
     }
-
+ 
     if (checkAcl)
     {
         ReturnErrorCodeIf(!request.subjectDescriptor.has_value(), Status::UnsupportedAccess);
@@ -374,7 +366,7 @@ DataModel::ActionReturnStatus CodegenDataModelProvider::WriteAttribute(const Dat
             return err;
         }
     }
-
+ 
     // Internal is allowed to bypass timed writes and read-only.
     if (!request.operationFlags.Has(DataModel::OperationFlags::kInternal))
     {
@@ -403,12 +395,18 @@ DataModel::ActionReturnStatus CodegenDataModelProvider::WriteAttribute(const Dat
             return Status::DataVersionMismatch;
         }
     }
-
+   
     ContextAttributesChangeListener change_listener(CurrentContext());
 
+   
     AttributeAccessInterface * aai =
         AttributeAccessInterfaceRegistry::Instance().Get(request.path.mEndpointId, request.path.mClusterId);
+
+  
+
     std::optional<CHIP_ERROR> aai_result = TryWriteViaAccessInterface(request.path, aai, decoder);
+
+
     if (aai_result.has_value())
     {
         if (*aai_result == CHIP_NO_ERROR)
@@ -420,9 +418,14 @@ DataModel::ActionReturnStatus CodegenDataModelProvider::WriteAttribute(const Dat
         return *aai_result;
     }
 
+    
     MutableByteSpan dataBuffer = gEmberAttributeIOBufferSpan;
+
+
     ReturnErrorOnFailure(DecodeValueIntoEmberBuffer(decoder, *attributeMetadata, dataBuffer));
 
+    // ChipLogDetail(DataManagement, "------------------Encoding attribute type %d", (*attributeMetadata)->attributeType);
+    //  ChipLogDetail(DataManagement, "88888888888888888888888888888888888888888");
     Protocols::InteractionModel::Status status;
 
     if (dataBuffer.size() > (*attributeMetadata)->size)

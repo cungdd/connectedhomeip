@@ -18,8 +18,7 @@ using namespace chip::DeviceLayer;
 using namespace chip::app::Clusters;
 
 namespace MatterDevice{
-const int kDescriptorAttributeArraySize = 254;
-    // static chip::DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
+    const int kDescriptorAttributeArraySize = 254;
     constexpr chip::EndpointId kLightSwitchEndpoint   = 2;
     constexpr chip::EndpointId kGenericSwitchEndpoint = 2;
     // DeviceLayer::NetworkCommissioning::LinuxEthernetDriver sEthernetDriver;
@@ -274,10 +273,10 @@ const int kDescriptorAttributeArraySize = 254;
     /*-----------------------Binding Attribute---------------------------*/
  
     DECLARE_DYNAMIC_ATTRIBUTE_LIST_BEGIN(bindingAttrs)
-    DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::Binding::Id, ARRAY, 256, 1),
+    DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::Binding::Id, OCTET_STRING, 200, 1),
     DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
-    DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::AttributeList::Id, ARRAY, kDescriptorAttributeArraySize, 0),          /* attribute list */
-    DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
+    // DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::AttributeList::Id, ARRAY, kDescriptorAttributeArraySize, 0),          /* attribute list */
+    // DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::FeatureMap::Id, BITMAP32, 4, 0),
     DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::ClusterRevision::Id, INT16U, 2, 0),
     // DECLARE_DYNAMIC_ATTRIBUTE(Binding::Attributes::EventList::Id, ARRAY, 4, 0),
         DECLARE_DYNAMIC_ATTRIBUTE_LIST_END();
@@ -392,6 +391,7 @@ const int kDescriptorAttributeArraySize = 254;
     DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(SERVER), identifyCommands, nullptr),
     DECLARE_DYNAMIC_CLUSTER(Identify::Id, identifyAttrs, ZAP_CLUSTER_MASK(CLIENT), nullptr, nullptr),
     DECLARE_DYNAMIC_CLUSTER(Descriptor::Id, descriptorAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
+    DECLARE_DYNAMIC_CLUSTER(Groups::Id, groupsAttrs, ZAP_CLUSTER_MASK(SERVER), groupsCommands, nullptr),
     DECLARE_DYNAMIC_CLUSTER(BridgedDeviceBasicInformation::Id, bridgedDeviceBasicAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),
     DECLARE_DYNAMIC_CLUSTER(OnOff::Id, onOffAttrs, ZAP_CLUSTER_MASK(CLIENT), nullptr, onOffCommands),
     DECLARE_DYNAMIC_CLUSTER(Binding::Id, bindingAttrs, ZAP_CLUSTER_MASK(SERVER), nullptr, nullptr),

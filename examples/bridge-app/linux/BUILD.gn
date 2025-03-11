@@ -37,7 +37,9 @@ executable("chip-bridge-app") {
     "include/BindingHandler.h",
     "include/LightSwitchMgr.h",
     "include/OTA.h",
-    "src/main.cpp"
+    "src/main.cpp",
+    "include/DeviceInfoProviderImpl.h",
+    "src/DeviceInfoProviderImpl.cpp"
   ]
 
   deps = [

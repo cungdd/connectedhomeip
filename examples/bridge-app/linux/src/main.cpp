@@ -66,8 +66,7 @@
 #include "IoTDeviceManager.h"
 #include "MQTTHandler.h"
 #include "BindingHandler.h"
-
-
+#include <DeviceInfoProviderImpl.h>
 
 using namespace chip;
 using namespace chip::app;
@@ -102,6 +101,8 @@ using namespace MatterDevice;
 
 IoTDeviceManager manager("/var/tmp/data/devices.json");
 MQTTHandler mqttClient(manager, "/var/tmp/data/mqtt_config.json");
+
+static chip::DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
 
 /* ------------------------------------------------------------------------ */
 
@@ -239,7 +240,6 @@ Protocols::InteractionModel::Status HandleReadBindingAttribute(chip::AttributeId
     if(attributeId==Binding::Attributes::Binding::Id){
         ChipLogProgress(DeviceLayer, "-------------Binding::Attributes::Binding::Id-------------");
         return Protocols::InteractionModel::Status::Success;
-        
     }
     else if(attributeId==Binding::Attributes::ClusterRevision::Id){
         *buffer = (uint16_t) ZCL_BINDING_CLUSTER_REVISION;
@@ -537,6 +537,8 @@ int main(int argc, char * argv[])
     {
         return -1;
     }
+
+
     // Init Data Model and CHIP App Server
     static chip::CommonCaseDeviceServerInitParams initParams;
     (void) initParams.InitializeStaticResourcesBeforeServerInit();
@@ -545,8 +547,8 @@ int main(int argc, char * argv[])
     chip::Server::GetInstance().Init(initParams);
     RunOTARequestor();
 
-    // gExampleDeviceInfoProvider.SetStorageDelegate(&Server::GetInstance().GetPersistentStorage());
-    // chip::DeviceLayer::SetDeviceInstanceInfoProvider(&gExampleDeviceInfoProvider);
+    gExampleDeviceInfoProvider.SetStorageDelegate(&Server::GetInstance().GetPersistentStorage());
+    chip::DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);
 
     // Initialize device attestation config
     SetDeviceAttestationCredentialsProvider(Examples::GetExampleDACProvider());
@@ -558,14 +560,9 @@ int main(int argc, char * argv[])
         ChipLogProgress(DeviceLayer, "LightSwitchMgr Init failed!");
     }
 
-    emberAfEndpointEnableDisable(emberAfEndpointFromIndex(static_cast<uint16_t>(emberAfFixedEndpointCount() - 1)), false);
-    CHIP_ERROR error = InitBindingHandler();
-    if (error != CHIP_NO_ERROR)
-    {
-        ChipLogProgress(NotSpecified, "InitBindingHandler() failed!");
-    }
-    Json::Value devices = manager.getDevices();
+    emberAfEndpointEnableDisable(emberAfEndpointFromIndex(static_cast<uint16_t>(emberAfFixedEndpointCount() - 1)), true);
 
+    Json::Value devices = manager.getDevices();
     for (const auto &device : devices) {
         HandleAddDeviceEndpoint(device["endpoint"].asUInt(), device["type_id"].asUInt());
     }
@@ -575,7 +572,7 @@ int main(int argc, char * argv[])
     LogEvent(event, 0, eventNumber);
   
     // sEthernetNetworkCommissioningInstance.Init();
-    InitOTARequestor();
+    // InitOTARequestor();
     chip::DeviceLayer::PlatformMgr().RunEventLoop();
 
     return 0;
