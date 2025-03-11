@@ -66,7 +66,7 @@
 #include "IoTDeviceManager.h"
 #include "MQTTHandler.h"
 #include "BindingHandler.h"
-#include <DeviceInfoProviderImpl.h>
+// #include <DeviceInfoProviderImpl.h>
 
 using namespace chip;
 using namespace chip::app;
@@ -102,7 +102,7 @@ using namespace MatterDevice;
 IoTDeviceManager manager("/var/tmp/data/devices.json");
 MQTTHandler mqttClient(manager, "/var/tmp/data/mqtt_config.json");
 
-static chip::DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
+// static chip::DeviceLayer::DeviceInfoProviderImpl gExampleDeviceInfoProvider;
 
 /* ------------------------------------------------------------------------ */
 
@@ -547,8 +547,8 @@ int main(int argc, char * argv[])
     chip::Server::GetInstance().Init(initParams);
     RunOTARequestor();
 
-    gExampleDeviceInfoProvider.SetStorageDelegate(&Server::GetInstance().GetPersistentStorage());
-    chip::DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);
+    // gExampleDeviceInfoProvider.SetStorageDelegate(&Server::GetInstance().GetPersistentStorage());
+    // chip::DeviceLayer::SetDeviceInfoProvider(&gExampleDeviceInfoProvider);
 
     // Initialize device attestation config
     SetDeviceAttestationCredentialsProvider(Examples::GetExampleDACProvider());
